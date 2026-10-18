@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "proto-concept",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SHARE_ROOM", "class_name": "ShareRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShareRoom"] }],
+  "observability": { "enabled": true }
+}
