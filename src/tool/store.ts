@@ -125,7 +125,8 @@ export const useTool = create<ToolState>()(
       setScreen: (screen) =>
         set({ screen, selection: [], hoverId: null, forced: {}, activeCommentId: null, activeSetId: null, propsCommentId: null }),
 
-      mode: "browse",
+      // visitors land with Agent comments picked (the share viewer sets its own mode)
+      mode: "comment",
       setMode: (mode) =>
         set({
           mode,
@@ -300,7 +301,7 @@ export const useTool = create<ToolState>()(
           future: [],
           selection: [],
           forced: {},
-          mode: "browse",
+          mode: "comment",
           screen: "overview",
           activeCommentId: null,
           activeSetId: null,
