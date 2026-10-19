@@ -420,3 +420,15 @@
 [data-pc-editing] *::selection {
   background: color-mix(in oklab, #0088ff, transparent 70%);
 }
+
+/* Properties: fields whose value differs from the original (any edit on the element) */
+[data-pc-changed] .pc-field {
+  background: color-mix(in oklab, var(--pc-comment), var(--pc-field) 92%);
+  outline: none;
+}
+[data-pc-changed] .pc-field:not(:focus-within) {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pc-comment), transparent 35%);
+}
+[data-pc-changed] .pc-changed-text {
+  color: var(--pc-comment);
+}
