@@ -282,7 +282,7 @@ export function FlowMode() {
       className="fixed inset-0 z-[45] overflow-hidden bg-pc-canvas"
       style={{
         visibility: phase === "hidden" ? "hidden" : "visible",
-        backgroundImage: "radial-gradient(var(--border) 1px, transparent 1px)",
+        backgroundImage: "radial-gradient(var(--pc-canvas-dot) 1px, transparent 1px)",
         backgroundSize: "22px 22px",
       }}
       aria-hidden={phase === "hidden"}

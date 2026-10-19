@@ -209,9 +209,9 @@ function OptionCard({
     >
       <div className="relative border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
-        {/* hover: the main action shows right on the preview, instantly */}
+        {/* hover: the preview dims and the main action shows right on it, instantly */}
         {!applied && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25 opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
             <button
               onClick={(e) => {
                 e.stopPropagation()
