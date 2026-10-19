@@ -3,13 +3,12 @@ import { AnimatePresence, motion } from "motion/react"
 import { SlidersHorizontal } from "@/lib/icons"
 import { restingState, statesFor } from "../actions"
 import { elInfo, findEl } from "../engine/dom"
-import { CustomComposer } from "../popover/EditPopover"
 import { INSPECTOR_W, useTool } from "../store"
-import { PropertiesPanel } from "./PropertiesPanel"
+import { ChangesBar, PropertiesPanel } from "./PropertiesPanel"
 
 /**
  * v2: Figma-style inspector docked on the right for the whole of comment mode. It shows the
- * selection's properties (the floating popover keeps only the prompt) and the Generate custom pill.
+ * selection's properties (the floating popover keeps only the prompt), with Add comment at its foot.
  */
 export function PropertiesInspector() {
   const show = useTool((s) => s.mode === "comment" && !s.commentsOpen)
@@ -50,7 +49,7 @@ export function PropertiesInspector() {
                 <PropertiesPanel key={selection.join("|")} state={current} fill />
               </div>
               <div className="shrink-0 border-t border-border p-2.5">
-                <CustomComposer inline />
+                <ChangesBar elIds={selection} />
               </div>
             </>
           ) : (

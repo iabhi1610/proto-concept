@@ -1,8 +1,8 @@
 import * as React from "react"
-import { findEl, inspectableFrom, productRoot } from "../engine/dom"
-import { editing, endTextEdit, startTextEdit, textHostAt } from "../engine/textEdit"
+import { ensureId, findEl, inspectableFrom, productRoot } from "../engine/dom"
+import { editing, endTextEdit, readText, startTextEdit, textHostAt } from "../engine/textEdit"
 import { applyText } from "../actions"
-import { useTool } from "../store"
+import { useTool, V2 } from "../store"
 import type { Box } from "./geometry"
 
 /** Resolves the element a pointer event targets: the deepest inspectable node, in comment and variants mode alike. */
@@ -134,10 +134,24 @@ export function Interaction({ onMarquee }: { onMarquee: (b: Box | null) => void 
       if (mode !== "comment") return
       const host = textHostAt(e.clientX, e.clientY)
       if (!host) return
-      // the popover steps aside while typing; the edit lands as its own pinned change
-      useTool.getState().clearSelection()
-      useTool.getState().setHover(null)
-      startTextEdit(host, (text) => applyText(host, text))
+      // the layer stays selected so Properties mirrors the copy as it's typed; the popover steps aside
+      // until the edit lands as its own pinned change, then reopens on Properties (v1) to show it
+      const s = useTool.getState()
+      const id = ensureId(host)
+      s.select([id], null)
+      s.setHover(null)
+      s.setTextDraft({ elId: id, text: readText(host) })
+      startTextEdit(
+        host,
+        (text) => {
+          applyText(host, text)
+          if (!V2) useTool.getState().setTab("properties")
+        },
+        {
+          onInput: (text) => useTool.getState().setTextDraft({ elId: id, text }),
+          onEnd: () => useTool.getState().setTextDraft(null),
+        },
+      )
     }
 
     const swallow = (e: Event) => {

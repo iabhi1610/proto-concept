@@ -1,6 +1,6 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { Check, ChevronDown, Copy, Plus, Search, Trash2, Wand2, X } from "@/lib/icons"
+import { ArrowLeft, Check, ChevronDown, Copy, Plus, Search, Trash2, Wand2, X } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { screenMeta } from "@/product/screens"
 import { chooseVariant, deleteVariantOption, letterFor } from "../../actions"
@@ -67,6 +67,17 @@ function SheetBody({ set, sets, onClose }: { set: VariantSet; sets: VariantSet[]
   const setLayout = useTool((s) => s.setVariantLayout)
   const letter = letterFor(set.id, sets)
   const cards: ("original" | VariantSet["options"][number])[] = ["original", ...set.options]
+  // drill-in: one card's sources replace the list until Back (scoped to the set it was opened from)
+  const [sourcesOf, setSourcesOf] = React.useState<{ setId: string; index: number; code: string; name: string } | null>(null)
+  const sources = sourcesOf?.setId === set.id ? sourcesOf : null
+  // screens picked with "Use as reference" (visual only for now), kept while the panel is open
+  const [picked, setPicked] = React.useState<Set<string>>(new Set())
+  const scrollRef = React.useRef<HTMLDivElement>(null)
+  const showSources = (next: typeof sourcesOf) => {
+    setPreviewOption(null)
+    setSourcesOf(next)
+    scrollRef.current?.scrollTo({ top: 0 })
+  }
 
   return (
     <>
@@ -78,9 +89,26 @@ function SheetBody({ set, sets, onClose }: { set: VariantSet; sets: VariantSet[]
         </button>
       </div>
 
-      <div className="no-scrollbar flex-1 overflow-y-auto p-3" onMouseLeave={() => setPreviewOption(null)}>
+      <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto p-3" onMouseLeave={() => setPreviewOption(null)}>
         <AnimatePresence mode="popLayout">
-          {set.generating ? (
+          {sources && !set.generating ? (
+            <SourcesView
+              key="sources"
+              code={sources.code}
+              name={sources.name}
+              apps={sourceApps(sources.index)}
+              isPicked={(app) => picked.has(`${set.id}:${sources.code}:${app}`)}
+              onToggle={(app) =>
+                setPicked((p) => {
+                  const k = `${set.id}:${sources.code}:${app}`
+                  const n = new Set(p)
+                  if (!n.delete(k)) n.add(k)
+                  return n
+                })
+              }
+              onBack={() => showSources(null)}
+            />
+          ) : set.generating ? (
             <motion.div key="gen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2 px-1 pb-1 text-[12px] font-medium text-[var(--pc-variant)]">
                 <Wand2 className="size-3.5 animate-pulse" /> Generating variants of {set.component}…
@@ -97,9 +125,20 @@ function SheetBody({ set, sets, onClose }: { set: VariantSet; sets: VariantSet[]
             </motion.div>
           ) : (
             <motion.div key="list" className="flex flex-col gap-2.5">
-              {cards.map((o, i) => (
-                <OptionCard key={`${set.id}:${o === "original" ? "original" : o.id}`} set={set} option={o} code={o === "original" ? "Original" : `${letter}${i}`} index={i} />
-              ))}
+              {cards.map((o, i) => {
+                const code = o === "original" ? "Original" : `${letter}${i}`
+                const name = o === "original" ? "Original" : o.name
+                return (
+                  <OptionCard
+                    key={`${set.id}:${o === "original" ? "original" : o.id}`}
+                    set={set}
+                    option={o}
+                    code={code}
+                    index={i}
+                    onSources={() => showSources({ setId: set.id, index: i, code, name })}
+                  />
+                )
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -124,7 +163,19 @@ function variantPrompt(set: VariantSet, option: "original" | VariantSet["options
   return lines.join("\n")
 }
 
-function OptionCard({ set, option, code, index }: { set: VariantSet; option: "original" | VariantSet["options"][number]; code: string; index: number }) {
+function OptionCard({
+  set,
+  option,
+  code,
+  index,
+  onSources,
+}: {
+  set: VariantSet
+  option: "original" | VariantSet["options"][number]
+  code: string
+  index: number
+  onSources: () => void
+}) {
   const setPreviewOption = useTool((s) => s.setPreviewOption)
   const id = option === "original" ? "original" : option.id
   const applied = set.selected === id
@@ -157,7 +208,21 @@ function OptionCard({ set, option, code, index }: { set: VariantSet; option: "or
       <div className="flex flex-col gap-2 p-3">
         <div className="flex items-center gap-2.5">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[13px] font-semibold leading-[1.5]">{option === "original" ? "Original" : option.name}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] font-semibold leading-[1.5]">{option === "original" ? "Original" : option.name}</span>
+              {/* only on hover, like Add to screen: opens this card's sources in the panel (Original has none) */}
+              {option !== "original" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSources()
+                  }}
+                  className="rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground opacity-0 transition-[opacity,background-color,color] duration-150 hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground group-hover/card:opacity-100 group-focus-within/card:opacity-100"
+                >
+                  {sourceApps(index).length} sources
+                </button>
+              )}
+            </div>
             <span className="text-[13px] leading-[1.375] text-muted-foreground">{option === "original" ? "What's in the product today." : option.description}</span>
           </div>
           {applied ? (
@@ -207,6 +272,104 @@ function OptionCard({ set, option, code, index }: { set: VariantSet; option: "or
         {code}
       </span>
     </motion.div>
+  )
+}
+
+/* ───────────────────────── sources (drill-in) ───────────────────────── */
+
+/** Placeholder sources until real Mobbin screens are wired in: three apps per card, rotating through the list. */
+const SOURCE_APPS = ["Intercom", "Front", "Midday", "Linear", "Attio", "Notion", "Stripe", "Vercel"]
+const sourceApps = (index: number) => [0, 1, 2].map((k) => SOURCE_APPS[(index * 3 + k) % SOURCE_APPS.length])
+
+/** One card's reference screens, filling the panel: app name, screenshot, and a "Use as reference" pick. */
+function SourcesView({
+  code,
+  name,
+  apps,
+  isPicked,
+  onToggle,
+  onBack,
+}: {
+  code: string
+  name: string
+  apps: string[]
+  isPicked: (app: string) => boolean
+  onToggle: (app: string) => void
+  onBack: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 16 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 16, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      className="flex flex-col gap-5"
+    >
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onBack}
+            className="-ml-1 flex h-7 items-center gap-1 rounded-md pl-1 pr-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [&_svg]:size-3.5"
+          >
+            <ArrowLeft /> Back
+          </button>
+          <span className="text-[12px] text-muted-foreground">Sources · {code}</span>
+        </div>
+        <span className="px-1 text-[13px] font-semibold">{name}</span>
+      </div>
+      {apps.map((app) => {
+        const on = isPicked(app)
+        return (
+          <div key={app} className="flex flex-col gap-2">
+            <span className="px-1 text-[14px] font-semibold">{app}</span>
+            <SourcePlaceholder />
+            <button
+              role="checkbox"
+              aria-checked={on}
+              onClick={() => onToggle(app)}
+              className="flex items-center justify-between rounded-md px-1 py-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Use as reference
+              <span
+                className={cn(
+                  "grid size-5 place-items-center rounded-full transition-colors [&_svg]:size-3",
+                  on ? "bg-[var(--pc-variant)] text-white" : "shadow-[inset_0_0_0_1.5px_currentColor]",
+                )}
+              >
+                {on && <Check />}
+              </span>
+            </button>
+          </div>
+        )
+      })}
+    </motion.div>
+  )
+}
+
+/** Stand-in for a Mobbin screenshot: a quiet app-window skeleton (sidebar, toolbar, rows). */
+function SourcePlaceholder() {
+  return (
+    <div className="relative flex aspect-[16/10] overflow-hidden rounded-md border border-border bg-[#f6f6f4] dark:bg-[#ececea]">
+      <div className="flex w-[22%] flex-col gap-1.5 border-r border-black/[0.06] p-2">
+        <div className="h-2 w-3/4 rounded-full bg-black/[0.08]" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-1.5 rounded-full bg-black/[0.05]" style={{ width: `${60 + ((i * 17) % 35)}%` }} />
+        ))}
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-2.5">
+        <div className="flex items-center justify-between">
+          <div className="h-2 w-1/3 rounded-full bg-black/[0.08]" />
+          <div className="h-3 w-10 rounded bg-black/[0.08]" />
+        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2 rounded bg-white/70 px-2 py-1.5 dark:bg-white">
+            <div className="size-2 rounded-full bg-black/[0.08]" />
+            <div className="h-1.5 rounded-full bg-black/[0.06]" style={{ width: `${45 + ((i * 23) % 40)}%` }} />
+          </div>
+        ))}
+      </div>
+      <span className="absolute bottom-1.5 right-1.5 rounded bg-black/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-black/40">Placeholder</span>
+    </div>
   )
 }
 
