@@ -202,15 +202,30 @@ function OptionCard({
       onMouseEnter={() => setPreviewOption({ setId: set.id, optionId: id })}
       className="group/card relative flex w-full flex-col overflow-hidden rounded-[14px] border border-border bg-background text-left"
     >
-      <div className="border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
+      <div className="relative border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
+        {/* hover: the preview dims and offers the main action right on it */}
+        {!applied && (
+          <div className="absolute inset-0 grid place-items-center bg-black/0 opacity-0 transition-[opacity,background-color] duration-150 group-hover/card:bg-black/25 group-hover/card:opacity-100 group-focus-within/card:bg-black/25 group-focus-within/card:opacity-100">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                chooseVariant(set.id, id)
+                setPreviewOption(null)
+              }}
+              className="flex h-8 translate-y-1 items-center gap-1.5 rounded-full bg-[var(--pc-variant)] px-3.5 text-[12.5px] font-medium text-white shadow-[0_2px_8px_rgb(0_0_0/0.2)] transition-[transform,filter] duration-200 ease-out hover:brightness-110 active:scale-[0.97] group-hover/card:translate-y-0 [&_svg]:size-3.5"
+            >
+              <Plus /> Add to screen
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-2 p-3">
         <div className="flex items-center gap-2.5">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-semibold leading-[1.5]">{option === "original" ? "Original" : option.name}</span>
-              {/* only on hover, like Add to screen: opens this card's sources in the panel (Original has none) */}
+              {/* only on hover: opens this card's sources in the panel (Original has none) */}
               {option !== "original" && (
                 <button
                   onClick={(e) => {
@@ -225,14 +240,9 @@ function OptionCard({
             </div>
             <span className="text-[13px] leading-[1.375] text-muted-foreground">{option === "original" ? "What's in the product today." : option.description}</span>
           </div>
-          {applied ? (
+          {applied && (
             <span className="flex shrink-0 items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-[var(--pc-variant)]">
               <Check className="size-3" /> On screen
-            </span>
-          ) : (
-            // only on hover: the card stays calm until you're looking at it
-            <span className="opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
-              <CardPill onClick={() => (chooseVariant(set.id, id), setPreviewOption(null))}>Add to screen</CardPill>
             </span>
           )}
         </div>
