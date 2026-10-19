@@ -111,8 +111,11 @@ function ToolButton({
   badge,
   accent,
   danger,
+  agent,
 }: {
   accent?: string
+  /** sits inside the Agent comments group: blue-tinted icon */
+  agent?: boolean
   /** destructive action: turns red on hover */
   danger?: boolean
   active?: boolean
@@ -138,7 +141,12 @@ function ToolButton({
                 ? "text-white"
                 : "bg-white text-[#1a1a1a] dark:bg-[#1a1a1a] dark:text-white"
               : danger
-                ? "text-white/85 hover:bg-[#ff6166]/15 hover:text-[#ff6166] dark:text-[#1a1a1a]/75 dark:hover:bg-[#e5484d]/10 dark:hover:text-[#e5484d]"
+                ? cn(
+                    "hover:bg-[#ff6166]/15 hover:text-[#ff6166] dark:hover:bg-[#e5484d]/10 dark:hover:text-[#e5484d]",
+                    agent ? "text-[#7cc4ff] dark:text-[#0077e6]" : "text-white/85 dark:text-[#1a1a1a]/75",
+                  )
+                : agent
+                  ? "text-[#7cc4ff] hover:bg-[#0088ff]/20 hover:text-[#a6d6ff] dark:text-[#0077e6] dark:hover:bg-[#0088ff]/12 dark:hover:text-[#0066cc]"
                 : "text-white/85 hover:bg-white/10 hover:text-white dark:text-[#1a1a1a]/75 dark:hover:bg-black/[0.05] dark:hover:text-[#1a1a1a]",
           )}
           style={active && accent ? { backgroundColor: accent } : undefined}
@@ -155,9 +163,9 @@ function ToolButton({
   )
 }
 
-const ACTIONS_W = 74 // two 36px buttons + the row's 1.5 gap before them
+const ACTIONS_W = 76 // two 36px buttons, each with a 2px gap before it
 
-/** Copy / Delete all, slid in beside Agent comments while that mode is on and there are comments. */
+/** Copy / Delete all, slid out of the Agent comments button while that mode is on and there are comments. */
 function AgentActions({ show, count }: { show: boolean; count: number }) {
   const [copied, setCopied] = React.useState(false)
   React.useEffect(() => {
@@ -168,19 +176,36 @@ function AgentActions({ show, count }: { show: boolean; count: number }) {
   return (
     <motion.div
       initial={false}
-      animate={{ width: show ? ACTIONS_W : 0, marginLeft: show ? 0 : -6, opacity: show ? 1 : 0 }}
-      transition={{ width: COLLAPSE, marginLeft: COLLAPSE, opacity: { duration: show ? 0.16 : 0.08, delay: show ? 0.04 : 0 } }}
+      animate={{ width: show ? ACTIONS_W : 0, opacity: show ? 1 : 0 }}
+      transition={{ width: COLLAPSE, opacity: { duration: show ? 0.16 : 0.08, delay: show ? 0.04 : 0 } }}
       inert={!show}
-      className="flex shrink-0 items-center gap-0.5 overflow-hidden"
+      className="flex shrink-0 items-center gap-0.5 overflow-hidden pl-0.5"
     >
       <ToolButton
+        agent
         label={copied ? "Copied" : "Copy agent comments"}
         shortcut="C"
         icon={copied ? <Check /> : <Copy />}
         onClick={() => void copyComments({ quiet: true }).then((ok) => ok && setCopied(true))}
       />
-      <ToolButton danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
+      <ToolButton agent danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
     </motion.div>
+  )
+}
+
+/** Agent comments and its actions read as one capsule: a blue tint fills in behind them when it opens. */
+function AgentGroup({ expanded, children }: { expanded: boolean; children: React.ReactNode }) {
+  return (
+    <div className="relative flex shrink-0 items-center rounded-full">
+      <motion.span
+        aria-hidden
+        initial={false}
+        animate={{ opacity: expanded ? 1 : 0 }}
+        transition={{ duration: expanded ? 0.2 : 0.1 }}
+        className="pointer-events-none absolute inset-0 rounded-full bg-[#0088ff]/[0.18] dark:bg-[#0088ff]/[0.1]"
+      />
+      {children}
+    </div>
   )
 }
 
@@ -380,6 +405,7 @@ export function Toolbar() {
           >
             {!openLeft && <Divider />}
 
+            <AgentGroup expanded={mode === "comment" && agentComments.length > 0}>
             <ToolButton
               active={mode === "comment"}
               label="Agent comments"
@@ -390,6 +416,7 @@ export function Toolbar() {
               badge={<CountBadge n={mode === "comment" ? 0 : open.length} color="#0077E6" />}
             />
             <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} />
+            </AgentGroup>
             <ToolButton
               active={mode === "variants"}
               label="Variants"
