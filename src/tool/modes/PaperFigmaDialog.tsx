@@ -177,7 +177,7 @@ export function PaperFigmaDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[520px]" data-pc-tool="">
+      <DialogContent className="pc-inverse gap-0 overflow-hidden bg-popover p-0 text-popover-foreground sm:max-w-[520px]" data-pc-tool="">
         <DialogHeader className="gap-1 px-5 pb-4 pt-5">
           <div className="flex items-center gap-2.5">
             <span className="relative flex">
@@ -297,7 +297,7 @@ export function PaperFigmaDialog() {
                           </span>
                         ))}
                       </span>
-                      <span className={cn("ml-1 grid size-4 place-items-center rounded-full border", on ? "border-foreground bg-foreground text-background" : "border-border")}>
+                      <span className={cn("ml-1 grid size-4 place-items-center rounded-full border", on ? "border-foreground bg-primary text-primary-foreground" : "border-border")}>
                         {on && <Check className="size-2.5" strokeWidth={3} />}
                       </span>
                     </button>
@@ -365,7 +365,7 @@ export function PaperFigmaDialog() {
                         <span
                           className={cn(
                             "grid size-5 place-items-center rounded-full border transition-colors",
-                            done ? "border-foreground bg-foreground text-background" : active ? "border-foreground/30" : "border-border",
+                            done ? "border-foreground bg-primary text-primary-foreground" : active ? "border-foreground/30" : "border-border",
                           )}
                         >
                           {done ? <Check className="size-3" strokeWidth={3} /> : active ? <Loader2 className="size-3 animate-spin" /> : null}
@@ -535,7 +535,7 @@ function Choice({
         </span>
         <span className="text-[12px] text-muted-foreground">{detail}</span>
       </span>
-      <span className={cn("mt-0.5 grid size-4 place-items-center rounded-full border", on ? "border-foreground bg-foreground text-background" : "border-border")}>
+      <span className={cn("mt-0.5 grid size-4 place-items-center rounded-full border", on ? "border-foreground bg-primary text-primary-foreground" : "border-border")}>
         {on && <Check className="size-2.5" strokeWidth={3} />}
       </span>
     </button>

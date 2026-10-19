@@ -40,12 +40,12 @@ export function RaisePRCard() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.97 }}
           transition={spring}
-          className="pc-shadow fixed bottom-[calc(var(--pc-float-bottom)+4px)] left-1/2 z-[58] w-[380px] -translate-x-1/2 overflow-hidden rounded-2xl border border-border/60 bg-popover text-popover-foreground"
+          className="pc-inverse pc-shadow fixed bottom-[calc(var(--pc-float-bottom)+4px)] left-1/2 z-[58] w-[380px] -translate-x-1/2 overflow-hidden rounded-2xl border border-border/60 bg-popover text-popover-foreground"
         >
           <div className="relative overflow-hidden border-b border-border/70 bg-muted/50 px-4 pb-3 pt-4">
             <div className="absolute -right-6 -top-6 size-28 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--pc-comment),transparent_75%),transparent_70%)]" />
             <div className="relative flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-[10px] bg-foreground text-background">
+              <span className="grid size-8 place-items-center rounded-[10px] bg-primary text-primary-foreground">
                 <GitPullRequestArrow className="size-4" />
               </span>
               <div className="flex flex-col">
@@ -84,7 +84,7 @@ export function RaisePRCard() {
                 setOpen(false)
                 toast.success("We'll let you know when Raise PR ships")
               }}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-[12.5px] font-medium text-background hover:opacity-90"
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[12.5px] font-medium text-primary-foreground hover:opacity-90"
             >
               <Bell className="size-3.5" /> Notify me
             </button>
@@ -117,7 +117,7 @@ export function ShortcutsDialog() {
   const setOpen = useTool((s) => s.setShortcutsOpen)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="z-[70] max-w-[420px]">
+      <DialogContent className="pc-inverse z-[70] max-w-[420px] bg-popover text-popover-foreground">
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>Everything works without leaving the canvas.</DialogDescription>

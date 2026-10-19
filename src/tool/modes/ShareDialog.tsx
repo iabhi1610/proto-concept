@@ -251,7 +251,7 @@ export function ShareDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[560px]" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="pc-inverse gap-0 overflow-hidden bg-popover p-0 text-popover-foreground sm:max-w-[560px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="flex items-start gap-3 px-5 pb-3 pt-5">
           <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-secondary text-foreground">
             <Share2 className="size-4" />
@@ -273,7 +273,7 @@ export function ShareDialog() {
                 <SelectTrigger className="h-10 w-[132px] text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="pc-inverse">
                   <SelectItem value="comment">Can comment</SelectItem>
                   <SelectItem value="view">Can view</SelectItem>
                 </SelectContent>
@@ -307,7 +307,7 @@ export function ShareDialog() {
                 <SelectTrigger className="h-8 w-auto gap-1.5 border-none px-1.5 text-[13px] font-medium shadow-none hover:bg-muted">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="pc-inverse">
                   <SelectItem value="link">Anyone with the link</SelectItem>
                   <SelectItem value="invite">Only people invited</SelectItem>
                 </SelectContent>
@@ -318,7 +318,7 @@ export function ShareDialog() {
                   <SelectTrigger className="h-8 w-auto gap-1.5 border-none px-1.5 text-[12.5px] text-muted-foreground shadow-none hover:bg-muted">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent align="end">
+                  <SelectContent align="end" className="pc-inverse">
                     <SelectItem value="comment">Can comment</SelectItem>
                     <SelectItem value="view">Can view</SelectItem>
                   </SelectContent>
@@ -361,7 +361,7 @@ export function ShareDialog() {
                       {expiry ? format(expiry, "EEEE, MMM d, yyyy") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="pc-inverse w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={expiry}
