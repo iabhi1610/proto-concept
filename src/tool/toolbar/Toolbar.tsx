@@ -111,11 +111,8 @@ function ToolButton({
   badge,
   accent,
   danger,
-  agent,
 }: {
   accent?: string
-  /** sits inside the Agent comments group: blue-tinted icon */
-  agent?: boolean
   /** destructive action: turns red on hover */
   danger?: boolean
   active?: boolean
@@ -141,12 +138,7 @@ function ToolButton({
                 ? "text-white"
                 : "bg-white text-[#1a1a1a] dark:bg-[#1a1a1a] dark:text-white"
               : danger
-                ? cn(
-                    "hover:bg-[#ff6166]/15 hover:text-[#ff6166] dark:hover:bg-[#e5484d]/10 dark:hover:text-[#e5484d]",
-                    agent ? "text-[#7cc4ff] dark:text-[#0077e6]" : "text-white/85 dark:text-[#1a1a1a]/75",
-                  )
-                : agent
-                  ? "text-[#7cc4ff] hover:bg-[#0088ff]/20 hover:text-[#a6d6ff] dark:text-[#0077e6] dark:hover:bg-[#0088ff]/12 dark:hover:text-[#0066cc]"
+                ? "text-white/85 hover:bg-[#ff6166]/15 hover:text-[#ff6166] dark:text-[#1a1a1a]/75 dark:hover:bg-[#e5484d]/10 dark:hover:text-[#e5484d]"
                 : "text-white/85 hover:bg-white/10 hover:text-white dark:text-[#1a1a1a]/75 dark:hover:bg-black/[0.05] dark:hover:text-[#1a1a1a]",
           )}
           style={active && accent ? { backgroundColor: accent } : undefined}
@@ -163,7 +155,7 @@ function ToolButton({
   )
 }
 
-const ACTIONS_W = 76 // two 36px buttons, each with a 2px gap before it
+const ACTIONS_W = 80 // 6px gap after the mode button + two 36px buttons 2px apart
 
 /** Copy / Delete all, slid out of the Agent comments button while that mode is on and there are comments. */
 function AgentActions({ show, count }: { show: boolean; count: number }) {
@@ -179,33 +171,37 @@ function AgentActions({ show, count }: { show: boolean; count: number }) {
       animate={{ width: show ? ACTIONS_W : 0, opacity: show ? 1 : 0 }}
       transition={{ width: COLLAPSE, opacity: { duration: show ? 0.16 : 0.08, delay: show ? 0.04 : 0 } }}
       inert={!show}
-      className="flex shrink-0 items-center gap-0.5 overflow-hidden pl-0.5"
+      className="flex shrink-0 items-center gap-0.5 overflow-hidden pl-1.5"
     >
       <ToolButton
-        agent
         label={copied ? "Copied" : "Copy agent comments"}
         shortcut="C"
         icon={copied ? <Check /> : <Copy />}
         onClick={() => void copyComments({ quiet: true }).then((ok) => ok && setCopied(true))}
       />
-      <ToolButton agent danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
+      <ToolButton danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
     </motion.div>
   )
 }
 
-/** Agent comments and its actions read as one capsule: a blue tint fills in behind them when it opens. */
+/** Agent comments and its actions read as one capsule: a soft fill wraps them while it's open. */
 function AgentGroup({ expanded, children }: { expanded: boolean; children: React.ReactNode }) {
   return (
-    <div className="relative flex shrink-0 items-center rounded-full">
+    <motion.div
+      initial={false}
+      animate={{ paddingLeft: expanded ? 2 : 0, paddingTop: expanded ? 2 : 0, paddingBottom: expanded ? 2 : 0 }}
+      transition={COLLAPSE}
+      className="relative flex shrink-0 items-center rounded-full"
+    >
       <motion.span
         aria-hidden
         initial={false}
         animate={{ opacity: expanded ? 1 : 0 }}
         transition={{ duration: expanded ? 0.2 : 0.1 }}
-        className="pointer-events-none absolute inset-0 rounded-full bg-[#0088ff]/[0.18] dark:bg-[#0088ff]/[0.1]"
+        className="pointer-events-none absolute inset-0 rounded-full bg-white/[0.16] dark:bg-black/[0.06]"
       />
       {children}
-    </div>
+    </motion.div>
   )
 }
 
