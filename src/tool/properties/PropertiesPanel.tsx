@@ -408,7 +408,6 @@ export function PropertiesPanel({ state, fill }: { state: string; fill?: boolean
 
   return (
     <div className={cn("no-scrollbar overflow-y-auto", fill ? "h-full" : "max-h-[min(460px,calc(100vh-260px))]")}>
-      {selection.length === 1 && <CustomComposer />}
       {composing ? (
         // writing a Generate custom prompt: everything folds into one row so the prompt has the stage
         <button
@@ -423,12 +422,14 @@ export function PropertiesPanel({ state, fill }: { state: string; fill?: boolean
       ) : (
         <>
           {selection.length === 1 && hasOwnText(el) && <CopySection el={el} elId={selection[0]} changed={is("$text")} />}
-          {/* generated panels lead, newest first */}
-          {panels?.map((p) => <CustomSection key={p.id} elId={selection[0]} panel={p} />)}
           {/* fixed order; sections that aren't set yet sit in place as "+" rows */}
           {order.map((id) => (active(id) ? render[id]() : <AddRow key={id} title={TITLE[id]} onAdd={() => add(id)} changed={sectionChanged(id)} />))}
+          {/* generated panels sit at the end, just above the row that makes them (newest first) */}
+          {panels?.map((p) => <CustomSection key={p.id} elId={selection[0]} panel={p} />)}
         </>
       )}
+      {/* last: Generate custom controls, a "+" row like the others that opens into a prompt */}
+      {selection.length === 1 && <CustomComposer />}
     </div>
   )
 }

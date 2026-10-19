@@ -1,12 +1,30 @@
 import * as React from "react"
-import { Sparkles } from "@/lib/icons"
+import { Plus, Sparkles } from "@/lib/icons"
 import { applyProps, statesFor } from "../actions"
 import { generatePanel, panelProps } from "../engine/customControls"
 import { useTool } from "../store"
 
+/** The AI sparkle, filled with a blue gradient. */
+export function AiSparkle({ className }: { className?: string }) {
+  const id = React.useId()
+  return (
+    <span className={className}>
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#0066FF" />
+            <stop offset="100%" stopColor="#4FD8FF" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <Sparkles style={{ fill: `url(#${id})` }} />
+    </span>
+  )
+}
+
 /**
- * "Generate custom controls": a small outlined button pinned to the top of Properties. It opens into a
- * prompt in place; the idea becomes a saved panel of DialKit-style controls right below it.
+ * "Generate custom controls": the last row of Properties, laid out like the other "+" rows. It opens
+ * into a prompt in place; the idea becomes a saved panel of DialKit-style controls just above it.
  */
 export function CustomComposer() {
   const open = useTool((s) => s.composerOpen)
@@ -14,8 +32,11 @@ export function CustomComposer() {
   const [text, setText] = React.useState("")
   const ref = React.useRef<HTMLTextAreaElement>(null)
   React.useEffect(() => {
-    if (open) requestAnimationFrame(() => ref.current?.focus())
-    else setText("")
+    if (!open) return setText("")
+    requestAnimationFrame(() => {
+      ref.current?.focus()
+      ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    })
   }, [open])
 
   const generate = () => {
@@ -32,25 +53,27 @@ export function CustomComposer() {
   }
 
   return (
-    // pinned to the top of the scrolling panel so it's always reachable
-    <div className="sticky top-0 z-10 border-b border-border bg-popover px-3 py-2">
+    <div className="border-t border-border first:border-t-0">
       {!open ? (
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setOpen(true)}
-            className="flex h-7 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-foreground/85 shadow-[inset_0_0_0_1px_var(--pc-field-border)] transition-[background-color,color,transform] duration-150 hover:bg-muted hover:text-foreground active:scale-[0.97] [&_svg]:size-3.5"
-          >
-            <Sparkles /> Generate custom controls
-          </button>
-          <span
-            title="Describe a feel (e.g. “springy hover lift”) and get DialKit-style controls for it"
-            className="grid size-5 cursor-help place-items-center rounded-full text-[11px] font-semibold text-muted-foreground"
-          >
-            ?
+        <button
+          onClick={() => setOpen(true)}
+          title="Describe a feel (e.g. “springy hover lift”) and get DialKit-style controls for it"
+          className="group/add flex h-10 w-full items-center justify-between px-3 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <span className="flex items-center gap-1.5">
+            <AiSparkle className="grid [&_svg]:size-3.5" />
+            Generate custom controls
           </span>
-        </div>
+          <span className="-mr-1 grid size-7 place-items-center rounded-lg transition-colors group-hover/add:bg-muted [&_svg]:size-3.5">
+            <Plus />
+          </span>
+        </button>
       ) : (
-        <div className="flex flex-col gap-2.5 py-1">
+        <div className="flex flex-col gap-2.5 px-3 py-3">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+            <AiSparkle className="grid [&_svg]:size-3.5" />
+            Generate custom controls
+          </span>
           <textarea
             ref={ref}
             value={text}
