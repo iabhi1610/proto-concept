@@ -3,13 +3,12 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { AlertTriangle, SlidersHorizontal, Sparkles, X } from "@/lib/icons"
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { applyPrompt, applyProps, createVariants, restingState, statesFor } from "../actions"
+import { applyPrompt, createVariants, restingState, statesFor } from "../actions"
 import { buildVariantsPrompt, copyText } from "../copy"
 import { childTarget, elInfo, findEl, parentTarget } from "../engine/dom"
-import { generatePanel, panelProps } from "../engine/customControls"
 import { detectVariantIntent } from "../engine/intent"
 import { unionBox, useLiveBoxes, type Box } from "../overlay/geometry"
-import { PropertiesPanel } from "../properties/PropertiesPanel"
+import { ChangesBar, PropertiesPanel } from "../properties/PropertiesPanel"
 import { BAR_H, INSPECTOR_W, SIDEBAR_W, useTool, V2 } from "../store"
 import { PromptInput } from "./PromptInput"
 
@@ -102,8 +101,28 @@ export function EditPopover() {
             <div className="pc-inverse pc-shadow overflow-hidden rounded-2xl bg-popover text-popover-foreground">
               <PopoverBody />
             </div>
-            <CustomComposer />
+            <FloatingChanges />
           </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+/** v1: while Properties is open, the changes / Add comment pill floats under the popover (the v2 inspector has it at its foot). */
+function FloatingChanges() {
+  const show = useTool((s) => s.mode === "comment" && !V2 && s.tab === "properties")
+  const selection = useTool((s) => s.selection)
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.1 } }}
+          transition={tabEase}
+        >
+          <ChangesBar elIds={selection} floating />
         </motion.div>
       )}
     </AnimatePresence>
@@ -314,7 +333,7 @@ function PopoverBody() {
     <div
       className="flex flex-col"
       data-pc-popover
-      style={variantsMode ? ({ "--pc-comment": "var(--pc-variant)" } as React.CSSProperties) : undefined}
+      style={variantsMode ? ({ "--pc-variant": "var(--pc-comment)" } as React.CSSProperties) : undefined}
     >
       {/* header */}
       <div className="flex h-10 items-center gap-1.5 pl-3 pr-2">
@@ -558,110 +577,5 @@ function TabBody({ tab, prompt, properties }: { tab: string; prompt: React.React
         </motion.div>
       )}
     </motion.div>
-  )
-}
-
-/**
- * "Generate custom": a detached pill under the popover (Properties tab only). It grows into a prompt;
- * the idea becomes a saved panel of DialKit-style controls at the top of Properties.
- */
-/** `inline`: rendered inside the v2 inspector instead of floating under the popover */
-export function CustomComposer({ inline }: { inline?: boolean }) {
-  const show = useTool((s) => s.mode === "comment" && s.selection.length === 1 && (inline || (!V2 && s.tab === "properties")))
-  const open = useTool((s) => s.composerOpen)
-  const setOpen = useTool((s) => s.setComposerOpen)
-  const [text, setText] = React.useState("")
-  const ref = React.useRef<HTMLTextAreaElement>(null)
-  React.useEffect(() => {
-    if (open) requestAnimationFrame(() => ref.current?.focus())
-    else setText("")
-  }, [open])
-
-  const generate = () => {
-    const prompt = text.trim()
-    if (!prompt) return
-    const st = useTool.getState()
-    const elId = st.selection[0]
-    const panel = generatePanel(prompt, statesFor([elId]).map((x) => x.id))
-    st.addCustomPanel(elId, panel)
-    // show the state the controls edit (e.g. Hover), then write their starting values
-    if (panel.state !== "default") st.setForced(elId, panel.state)
-    applyProps(panelProps(panel), [], { state: panel.state })
-    setOpen(false)
-  }
-
-  return (
-    <AnimatePresence initial={false}>
-      {show && (
-        <motion.div
-          layout
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6, transition: { duration: 0.1 } }}
-          transition={{ ...tabEase, layout: tabEase }}
-          className={cn("pc-inverse overflow-hidden bg-popover text-popover-foreground", !inline && "pc-shadow", open ? "rounded-2xl" : "rounded-full")}
-        >
-          <AnimatePresence mode="popLayout" initial={false}>
-            {!open ? (
-              <motion.button
-                key="pill"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                onClick={() => setOpen(true)}
-                className="flex h-11 w-full items-center gap-2.5 pl-4 pr-2 text-[13px] font-medium text-foreground/90 transition-colors hover:text-foreground"
-              >
-                <Sparkles className="size-4 text-[var(--pc-comment)]" />
-                <span className="flex-1 text-left">Generate custom controls</span>
-                <span
-                  title="Describe a feel (e.g. “springy hover lift”) and get DialKit-style controls for it"
-                  className="grid size-6 place-items-center rounded-full bg-[var(--pc-pill)] text-[11px] font-semibold text-foreground/70"
-                >
-                  ?
-                </span>
-              </motion.button>
-            ) : (
-              <motion.div
-                key="box"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.16, delay: 0.04 }}
-                className="flex flex-col gap-2.5 p-3"
-              >
-                <textarea
-                  ref={ref}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    e.stopPropagation()
-                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) (e.preventDefault(), generate())
-                    if (e.key === "Escape") setOpen(false)
-                  }}
-                  placeholder="Describe the controls you want, e.g. springy hover lift with a soft glow"
-                  className="h-[72px] w-full resize-none rounded-lg border border-[var(--pc-field-border)] bg-[var(--pc-field)] p-2 text-[12px] leading-[15px] text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-[var(--pc-placeholder)] focus:border-[var(--pc-comment)] focus:shadow-[0_0_0_0.5px_var(--pc-comment)]"
-                />
-                <div className="flex items-center justify-end gap-1.5">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="h-6 rounded-full bg-muted px-3 text-[12px] font-medium text-foreground/80 transition-colors hover:bg-[var(--pc-pill)]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={generate}
-                    disabled={!text.trim()}
-                    className="flex h-6 items-center gap-1 rounded-full bg-[var(--pc-comment)] px-3.5 text-[12px] font-medium text-white transition-opacity disabled:opacity-45 [&_svg]:size-3"
-                  >
-                    <Sparkles /> Generate
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
   )
 }

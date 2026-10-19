@@ -1,10 +1,10 @@
 import * as React from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowRight, CaseLower, CaseSensitive, CaseUpper, Check, ChevronDown, Minus, PadX, PadY, Space, WrapText } from "@/lib/icons"
+import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowRight, CaseLower, CaseSensitive, CaseUpper, ChevronDown, Minus, PadX, PadY, Space, WrapText } from "@/lib/icons"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import type { ComponentDef } from "@/product/system/define"
 import { applyProps, applyText } from "../actions"
-import { buildElementMarkdown, copyText } from "../copy"
+import { CustomComposer } from "./CustomComposer"
 import { CustomSection } from "./CustomSection"
 import { elInfo, findEl, px, readSnapshot } from "../engine/dom"
 import { endPreview, hasOwnText, previewText, readText } from "../engine/textEdit"
@@ -408,7 +408,7 @@ export function PropertiesPanel({ state, fill }: { state: string; fill?: boolean
 
   return (
     <div className={cn("no-scrollbar overflow-y-auto", fill ? "h-full" : "max-h-[min(460px,calc(100vh-260px))]")}>
-      <CopyBar elIds={selection} />
+      {selection.length === 1 && <CustomComposer />}
       {composing ? (
         // writing a Generate custom prompt: everything folds into one row so the prompt has the stage
         <button
@@ -737,36 +737,34 @@ const ArrowsReverse = () => (
   </svg>
 )
 
-/** "4 changes · Copy for agent": hands every edit on the selection to the agent in one paste. */
-function CopyBar({ elIds }: { elIds: string[] }) {
+/**
+ * "4 changes · Add comment": Properties edits are saved as the element's comment as they're made;
+ * Add comment confirms it and closes the selection, like Add in the comment box. Floats as a pill
+ * under the v1 popover and sits at the foot of the v2 inspector; disabled until something changed.
+ */
+export function ChangesBar({ elIds, floating }: { elIds: string[]; floating?: boolean }) {
   const ops = useTool((s) => s.ops)
-  const [copied, setCopied] = React.useState(false)
   const count = React.useMemo(() => {
     const keys = new Set<string>()
     for (const o of ops) if (elIds.includes(o.elId)) for (const k of Object.keys(o.props)) keys.add(`${o.elId}|${o.state}|${k}`)
     return keys.size
   }, [ops, elIds])
-  React.useEffect(() => {
-    if (!copied) return
-    const t = window.setTimeout(() => setCopied(false), 1400)
-    return () => window.clearTimeout(t)
-  }, [copied])
-  if (!count) return null
   return (
-    // pinned to the top of the scrolling panel so Copy is always reachable
-    <div className="sticky top-0 z-10 flex h-10 items-center justify-between border-b border-border bg-popover px-3">
+    <div
+      className={cn(
+        "flex items-center justify-between",
+        floating ? "pc-inverse pc-shadow h-11 rounded-full bg-popover pl-4 pr-2 text-popover-foreground" : "h-9 pl-1",
+      )}
+    >
       <span className="text-[12px] text-muted-foreground">
-        {count} {count === 1 ? "change" : "changes"}
+        {count ? `${count} ${count === 1 ? "change" : "changes"}` : "No changes yet"}
       </span>
       <button
-        onClick={async () => {
-          await copyText(buildElementMarkdown(elIds))
-          setCopied(true)
-        }}
-        className="flex h-6 items-center gap-1 rounded-full bg-[var(--pc-comment)] px-3.5 text-[12px] font-medium text-white transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.97] [&_svg]:size-3"
+        disabled={!count}
+        onClick={() => useTool.getState().clearSelection()}
+        className="flex h-6 items-center rounded-full bg-[var(--pc-comment)] px-3.5 text-[12px] font-medium text-white transition-[filter,transform,opacity] duration-150 hover:brightness-110 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40"
       >
-        {copied && <Check />}
-        {copied ? "Copied" : "Copy"}
+        Add comment
       </button>
     </div>
   )
