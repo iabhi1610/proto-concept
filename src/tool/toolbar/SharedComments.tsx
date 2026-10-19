@@ -212,9 +212,7 @@ function SharedCard({ c, onJump }: { c: Comment; onJump: () => void }) {
               Reply
             </Pill>
             {c.elIds.length > 0 && (
-              <Pill onClick={() => sendSharedToAgent(c)}>
-                <Sparkles className="size-3 text-[var(--pc-comment)]" /> Send to agent
-              </Pill>
+              <SendToAgent c={c} />
             )}
           </motion.div>
         )}
@@ -223,14 +221,65 @@ function SharedCard({ c, onJump }: { c: Comment; onJump: () => void }) {
   )
 }
 
-function Pill({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+/** Send to agent, which confirms in place: the pill turns blue with a check for a moment. */
+function SendToAgent({ c }: { c: Comment }) {
+  const [sent, setSent] = React.useState(false)
+  React.useEffect(() => {
+    if (!sent) return
+    const t = setTimeout(() => setSent(false), 2000)
+    return () => clearTimeout(t)
+  }, [sent])
+  return (
+    <Pill
+      onClick={() => {
+        if (sent) return
+        sendSharedToAgent(c)
+        setSent(true)
+      }}
+      className={cn(
+        "overflow-hidden transition-[background-color,border-color,color] duration-200",
+        sent &&
+          "border-[color-mix(in_oklab,var(--pc-comment),transparent_60%)] bg-[color-mix(in_oklab,var(--pc-comment),transparent_84%)] text-[var(--pc-comment)] hover:bg-[color-mix(in_oklab,var(--pc-comment),transparent_84%)] hover:text-[var(--pc-comment)]",
+      )}
+    >
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={sent ? "sent" : "send"}
+          initial={{ opacity: 0, y: 6, filter: "blur(2px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -6, filter: "blur(2px)" }}
+          transition={{ type: "spring", visualDuration: 0.22, bounce: 0.2 }}
+          className="flex items-center gap-1"
+        >
+          {sent ? (
+            <>
+              <motion.span initial={{ scale: 0.4 }} animate={{ scale: 1 }} transition={{ type: "spring", visualDuration: 0.25, bounce: 0.45 }} className="grid">
+                <Check className="size-3" />
+              </motion.span>
+              Sent to agent
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-3 text-[var(--pc-comment)]" /> Send to agent
+            </>
+          )}
+        </motion.span>
+      </AnimatePresence>
+    </Pill>
+  )
+}
+
+function Pill({ onClick, children, className }: { onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button
       onClick={(e) => {
         e.stopPropagation()
         onClick()
       }}
-      className="flex h-6 items-center gap-1 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className={cn(
+        "flex h-6 items-center gap-1 rounded-full border border-border px-2.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+        className,
+      )}
     >
       {children}
     </button>
