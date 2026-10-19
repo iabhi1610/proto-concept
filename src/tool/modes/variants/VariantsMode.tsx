@@ -187,6 +187,11 @@ function OptionCard({
     return () => window.clearTimeout(t)
   }, [copied])
 
+  const addToScreen = () => {
+    chooseVariant(set.id, id)
+    setPreviewOption(null)
+  }
+
   const iterate = () => {
     // put this variant on screen, then hand the prompt box a starting line for the next round
     chooseVariant(set.id, id)
@@ -201,8 +206,11 @@ function OptionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 4) * 0.03 }}
       onMouseEnter={() => setPreviewOption({ setId: set.id, optionId: id })}
+      // the whole card is the Add to screen target (its own buttons stop the click)
+      onClick={applied ? undefined : addToScreen}
       className={cn(
         "group/card relative flex w-full flex-col overflow-hidden rounded-[14px] border border-border bg-background text-left",
+        !applied && "cursor-pointer",
         // the one on screen: a plain outline in the variants purple
         applied && "border-[var(--pc-variant)] shadow-[0_0_0_1px_var(--pc-variant)]",
       )}
@@ -211,12 +219,11 @@ function OptionCard({
         <DeferredPreview set={set} option={option} index={index} />
         {/* hover: the preview dims and the main action shows right on it, instantly */}
         {!applied && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25 opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/[0.12] opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                chooseVariant(set.id, id)
-                setPreviewOption(null)
+                addToScreen()
               }}
               className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full bg-[#1a1a1a] px-3.5 text-[12.5px] font-medium text-white hover:bg-black active:scale-[0.97] [&_svg]:size-3.5"
             >
