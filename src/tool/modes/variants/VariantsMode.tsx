@@ -230,16 +230,13 @@ function OptionCard({
     >
       <div className="relative shrink-0 border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
-        {/* code tag inside the preview: quiet at rest, solid with a check when it's on screen */}
+        {/* code tag inside the preview: quiet at rest, solid purple when it's on screen */}
         <span
           className={cn(
-            "absolute left-2 top-2 flex h-5 items-center gap-0.5 rounded-[5px] px-1.5 font-mono text-[11px] font-semibold leading-none",
-            applied
-              ? "bg-[var(--pc-variant)] text-white [&_svg]:size-3"
-              : "bg-white text-[var(--pc-variant)] shadow-[0_0_0_1px_rgb(0_0_0/0.08)]",
+            "absolute left-2 top-2 flex h-5 items-center rounded-[5px] px-1.5 text-[11px] font-semibold leading-none",
+            applied ? "bg-[var(--pc-variant)] text-white" : "bg-white text-[var(--pc-variant)] shadow-[0_0_0_1px_rgb(0_0_0/0.08)]",
           )}
         >
-          {applied && <Check />}
           {code}
         </span>
       </div>
@@ -279,6 +276,8 @@ function OptionCard({
           <CardIcon label={copied ? "Copied" : "Copy prompt"} onClick={own(copyPrompt)}>
             {copied ? <Check /> : <Copy />}
           </CardIcon>
+          {/* ⋯ holds what isn't already a button on the card; Original has neither */}
+          {!isOriginal && (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
@@ -291,27 +290,16 @@ function OptionCard({
             </DropdownMenuTrigger>
             {/* portalled, but React still bubbles its clicks to the card: stop them here */}
             <DropdownMenuContent align="end" sideOffset={6} className="w-44" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onSelect={iterate}>
-                <RefreshCw /> Iterate over
+              <DropdownMenuItem onSelect={onSources}>
+                <ImageGlyph /> View sources
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void copyPrompt()}>
-                <Copy /> Copy prompt
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => deleteVariantOption(set.id, option.id)}>
+                <Trash2 /> Delete variant
               </DropdownMenuItem>
-              {!isOriginal && (
-                <DropdownMenuItem onSelect={onSources}>
-                  <ImageGlyph /> View sources
-                </DropdownMenuItem>
-              )}
-              {!isOriginal && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={() => deleteVariantOption(set.id, option.id)}>
-                    <Trash2 /> Delete variant
-                  </DropdownMenuItem>
-                </>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
     </motion.div>
