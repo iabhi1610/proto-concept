@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Copy, Ellipsis, GitPullRequestArrow, Keyboard, MessagesSquare, Moon, MousePointer2, PenTool, RotateCcw, Shapes, Share, Sun, Trash2, Undo2, Workflow } from "@/lib/icons"
+import { Copy, Ellipsis, GitPullRequestArrow, Keyboard, MessagesSquare, Moon, MousePointer2, PenTool, RotateCcw, Shapes, Share, Sun, Trash2, Workflow } from "@/lib/icons"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -22,7 +22,6 @@ export function BottomBar() {
   const commentsOpen = useTool((s) => s.commentsOpen)
   const prOpen = useTool((s) => s.prOpen)
   const shareOpen = useTool((s) => s.shareOpen)
-  const canUndo = useTool((s) => s.past.length > 0)
   const viewers = useShareViewers()
   const agentOpen = comments.filter((c) => c.source !== "viewer" && c.status === "open").length
   const agentAll = comments.filter((c) => c.source !== "viewer").length
@@ -73,14 +72,6 @@ export function BottomBar() {
               <Trash2 /> Delete all agent comments
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => useTool.getState().undo()} disabled={!canUndo}>
-              <Undo2 /> Undo
-              <DropdownMenuShortcut>⌘Z</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => useTool.getState().redo()}>
-              <Undo2 className="-scale-x-100" /> Redo
-              <DropdownMenuShortcut>⇧⌘Z</DropdownMenuShortcut>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => useTool.getState().toggleTheme()}>
               {theme === "light" ? <Moon /> : <Sun />} {theme === "light" ? "Dark chrome" : "Light chrome"}
             </DropdownMenuItem>

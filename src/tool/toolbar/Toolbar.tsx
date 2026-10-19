@@ -1,6 +1,7 @@
 import * as React from "react"
 import { motion } from "motion/react"
 import {
+  Check,
   Copy,
   Ellipsis,
   GitPullRequestArrow,
@@ -14,7 +15,6 @@ import {
   Share,
   Sun,
   Trash2,
-  Undo2,
   Workflow,
 } from "@/lib/icons"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -155,6 +155,35 @@ function ToolButton({
   )
 }
 
+const ACTIONS_W = 74 // two 36px buttons + the row's 1.5 gap before them
+
+/** Copy / Delete all, slid in beside Agent comments while that mode is on and there are comments. */
+function AgentActions({ show, count }: { show: boolean; count: number }) {
+  const [copied, setCopied] = React.useState(false)
+  React.useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 1400)
+    return () => clearTimeout(t)
+  }, [copied])
+  return (
+    <motion.div
+      initial={false}
+      animate={{ width: show ? ACTIONS_W : 0, marginLeft: show ? 0 : -6, opacity: show ? 1 : 0 }}
+      transition={{ width: COLLAPSE, marginLeft: COLLAPSE, opacity: { duration: show ? 0.16 : 0.08, delay: show ? 0.04 : 0 } }}
+      inert={!show}
+      className="flex shrink-0 items-center gap-0.5 overflow-hidden"
+    >
+      <ToolButton
+        label={copied ? "Copied" : "Copy agent comments"}
+        shortcut="C"
+        icon={copied ? <Check /> : <Copy />}
+        onClick={() => void copyComments({ quiet: true }).then((ok) => ok && setCopied(true))}
+      />
+      <ToolButton danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
+    </motion.div>
+  )
+}
+
 export function Toolbar() {
   const mode = useTool((s) => s.mode)
   const toggleMode = useTool((s) => s.toggleMode)
@@ -165,7 +194,6 @@ export function Toolbar() {
   const commentsOpen = useTool((s) => s.commentsOpen)
   const prOpen = useTool((s) => s.prOpen)
   const shareOpen = useTool((s) => s.shareOpen)
-  const canUndo = useTool((s) => s.past.length > 0)
   // agent comments (pins, C, delete-all) and shared-link comments (Comments sidebar) are counted apart
   const agentComments = comments.filter((c) => c.source !== "viewer")
   const open = agentComments.filter((c) => c.status === "open")
@@ -277,6 +305,8 @@ export function Toolbar() {
   // collapse / expand can come from anywhere (logo, Esc, a tool shortcut): before the width animates,
   // pin the logo where it is (first collapse) or pick the side with room to grow into (expand)
   const wasCollapsed = React.useRef(collapsed)
+  const toggledAt = React.useRef(0)
+  if (wasCollapsed.current !== collapsed) toggledAt.current = Date.now()
   React.useLayoutEffect(() => {
     if (wasCollapsed.current === collapsed) return
     wasCollapsed.current = collapsed
@@ -335,7 +365,9 @@ export function Toolbar() {
             opacity: collapsed ? 0 : 1,
           }}
           transition={{
-            width: COLLAPSE,
+            // the collapse spring only runs for collapse / expand; when tools come and go inside the
+            // row (AgentActions animates its own width) the bar just tracks the measured row
+            width: Date.now() - toggledAt.current < 400 ? COLLAPSE : { duration: 0 },
             opacity: { duration: collapsed ? 0.08 : 0.16, delay: collapsed ? 0 : 0.02 },
           }}
           className={cn("min-w-0", collapsed ? "overflow-hidden" : "overflow-visible")}
@@ -357,6 +389,7 @@ export function Toolbar() {
               onClick={() => toggleMode("comment")}
               badge={<CountBadge n={mode === "comment" ? 0 : open.length} color="#0077E6" />}
             />
+            <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} />
             <ToolButton
               active={mode === "variants"}
               label="Variants"
@@ -392,7 +425,6 @@ export function Toolbar() {
                 }
               />
             </div>
-            {agentComments.length > 0 && <ToolButton danger label={`Delete all agent comments (${agentComments.length})`} icon={<Trash2 />} onClick={deleteAllComments} />}
 
             <Divider />
 
@@ -428,14 +460,6 @@ export function Toolbar() {
                   <DropdownMenuShortcut className={menuKbd}>C</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-white/10 dark:bg-black/[0.08]" />
-                <DropdownMenuItem className={menuItem} onClick={() => useTool.getState().undo()} disabled={!canUndo}>
-                  <Undo2 /> Undo
-                  <DropdownMenuShortcut className={menuKbd}>⌘Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem className={menuItem} onClick={() => useTool.getState().redo()}>
-                  <Undo2 className="-scale-x-100" /> Redo
-                  <DropdownMenuShortcut className={menuKbd}>⇧⌘Z</DropdownMenuShortcut>
-                </DropdownMenuItem>
                 <DropdownMenuItem className={menuItem} onClick={toggleTheme}>
                   {theme === "light" ? <Moon /> : <Sun />}
                   {theme === "light" ? "Dark chrome" : "Light chrome"}

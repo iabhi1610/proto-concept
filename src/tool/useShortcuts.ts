@@ -7,7 +7,8 @@ import { useTool, V2 } from "./store"
  * `C`: with a commented element (or an open comment) selected → copy just those;
  * otherwise → copy every open comment across screens.
  */
-export async function copyComments() {
+/** Copies agent comments as markdown. `quiet` skips the toast (the caller shows its own feedback). */
+export async function copyComments(opts?: { quiet?: boolean }): Promise<boolean> {
   const s = useTool.getState()
   const agent = s.comments.filter((c) => c.source !== "viewer")
   let list = agent.filter((c) => c.status === "open")
@@ -23,14 +24,17 @@ export async function copyComments() {
     }
   }
   if (!list.length) {
+    if (opts?.quiet) return false
     toast("No comments yet", { description: "Press A, click an element and describe a change." })
-    return
+    return false
   }
   await copyText(buildMarkdown(list))
+  if (opts?.quiet) return true
   toast.success(
     scope === "one" ? `Copied comment #${list[0].number} for the agent` : scope === "selection" ? `Copied ${list.length} comment${list.length > 1 ? "s" : ""} on this selection` : `Copied all ${list.length} comments for the agent`,
     { description: "Paste into Claude Code, Cursor or any agent." },
   )
+  return true
 }
 
 const typing = (t: EventTarget | null) => {
