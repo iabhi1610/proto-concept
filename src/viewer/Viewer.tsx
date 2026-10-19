@@ -207,7 +207,7 @@ function ViewerApp({ shareId, data }: { shareId: string; data: SharePayload }) {
           <StyleInjector />
           {data.config.role === "comment" && <ViewerComments />}
           {!embed && <ViewerChrome />}
-          <Toaster position="top-center" offset={16} theme="dark" className="toaster group pc-inverse" />
+          <Toaster position="top-right" offset={16} theme="dark" className="toaster group pc-inverse" />
         </div>
       </TooltipProvider>
     </ViewerContext.Provider>

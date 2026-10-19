@@ -51,7 +51,7 @@ export function Editor() {
         </motion.div>
         <StyleInjector />
         <ToolLayer />
-        <Toaster position="top-center" offset={60} />
+        <Toaster position="top-right" offset={16} />
       </div>
     </TooltipProvider>
   )

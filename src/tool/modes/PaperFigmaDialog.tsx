@@ -16,24 +16,33 @@ import { copyForDesignTool, previewDataUrl } from "./paper/capture"
 type Dest = "paper" | "figma"
 type Step = "compose" | "pick" | "detect" | "progress" | "done"
 
-export function PaperMark({ className }: { className?: string }) {
+/** Paper's mark (from paper.design): two offset squares. Full colour is the app-icon tile; `mono` is the bare mark. */
+export function PaperMark({ className, mono }: { className?: string; mono?: boolean }) {
+  const mark = "M3 0H21V13H13V3H3ZM0 3H3V13H13V21H0Z"
+  if (mono)
+    return (
+      <svg viewBox="0 0 21 21" className={cn("size-4", className)} aria-hidden>
+        <path d={mark} fill="currentColor" />
+      </svg>
+    )
   return (
-    <svg viewBox="0 0 16 16" className={cn("size-4", className)} fill="none">
-      <path d="M3.5 1.75h6.25L12.5 4.5v9.75H3.5z" fill="currentColor" fillOpacity="0.08" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M9.75 1.75V4.5h2.75" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M5.75 8h4.5M5.75 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <svg viewBox="0 0 16 16" className={cn("size-4", className)} aria-hidden>
+      <rect width="16" height="16" rx="3.6" fill="#7aa5ec" />
+      <path d={mark} fill="#f4f4f0" transform="translate(3.6 3.6) scale(0.4)" />
     </svg>
   )
 }
 
-export function FigmaMark({ className }: { className?: string }) {
+/** Figma's logo in its five brand colours; `mono` draws the same shapes in the current colour. */
+export function FigmaMark({ className, mono }: { className?: string; mono?: boolean }) {
+  const c = (hex: string) => (mono ? "currentColor" : hex)
   return (
-    <svg viewBox="0 0 16 16" className={cn("size-4", className)}>
-      <circle cx="5.5" cy="3.5" r="2.25" fill="currentColor" fillOpacity="0.85" />
-      <circle cx="10.5" cy="3.5" r="2.25" fill="currentColor" fillOpacity="0.55" />
-      <circle cx="5.5" cy="8" r="2.25" fill="currentColor" fillOpacity="0.7" />
-      <circle cx="10.5" cy="8" r="2.25" fill="#8b5cf6" />
-      <circle cx="5.5" cy="12.5" r="2.25" fill="currentColor" fillOpacity="0.4" />
+    <svg viewBox="0 0 38 57" className={cn("size-4", className)} aria-hidden>
+      <path d="M19 28.5a9.5 9.5 0 1 1 19 0 9.5 9.5 0 0 1-19 0z" fill={c("#1abcfe")} />
+      <path d="M0 47.5A9.5 9.5 0 0 1 9.5 38H19v9.5a9.5 9.5 0 1 1-19 0z" fill={c("#0acf83")} />
+      <path d="M19 0v19h9.5a9.5 9.5 0 1 0 0-19H19z" fill={c("#ff7262")} />
+      <path d="M0 9.5A9.5 9.5 0 0 0 9.5 19H19V0H9.5A9.5 9.5 0 0 0 0 9.5z" fill={c("#f24e1e")} />
+      <path d="M0 28.5A9.5 9.5 0 0 0 9.5 38H19V19H9.5A9.5 9.5 0 0 0 0 28.5z" fill={c("#a259ff")} />
     </svg>
   )
 }
@@ -181,10 +190,9 @@ export function PaperFigmaDialog() {
         <DialogHeader className="gap-1 px-5 pb-4 pt-5">
           <div className="flex items-center gap-2.5">
             <span className="relative flex">
-              <span className="grid size-7 place-items-center rounded-lg border border-border bg-background text-foreground">
-                <PaperMark />
-              </span>
-              <span className="-ml-2 grid size-7 place-items-center rounded-lg border border-border bg-background text-foreground ring-2 ring-popover">
+              {/* Paper's mark is its own tile; Figma's sits on a matching one */}
+              <PaperMark className="size-7" />
+              <span className="-ml-2 grid size-7 place-items-center rounded-[6.3px] bg-[#1e1e1e] ring-2 ring-popover">
                 <FigmaMark />
               </span>
             </span>
@@ -280,7 +288,7 @@ export function PaperFigmaDialog() {
                       )}
                     >
                       <span className="grid size-9 place-items-center rounded-md text-white" style={{ background: f.color }}>
-                        {dest === "paper" ? <PaperMark className="text-white" /> : <FigmaMark className="text-white" />}
+                        {dest === "paper" ? <PaperMark mono className="text-white" /> : <FigmaMark mono className="text-white" />}
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col">
                         <span className="truncate text-[13px] font-medium text-foreground">{f.name}</span>
