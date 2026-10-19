@@ -47,8 +47,9 @@ export function PromptInput({
           {intent ? (
             <>
               {value.slice(0, intent.start)}
-              {/* tag: tinted purple with text that keeps ≥ 6:1 contrast on both popover themes */}
-              <mark className="rounded-[4px] bg-[#e7e5fe] text-[#4b3fd6] shadow-[0_0_0_2px_#e7e5fe] dark:bg-[#3b3670] dark:text-[#d4d0ff] dark:shadow-[0_0_0_2px_#3b3670]">
+              {/* tag: tinted purple with text that keeps ≥ 6:1 contrast on both popover themes; its padding is
+                  drawn with shadows (2px more at the sides) so the text stays aligned with the textarea's */}
+              <mark className="rounded-[4px] bg-[#e7e5fe] text-[#4b3fd6] shadow-[0_0_0_2px_#e7e5fe,2px_0_0_2px_#e7e5fe,-2px_0_0_2px_#e7e5fe] dark:bg-[#3b3670] dark:text-[#d4d0ff] dark:shadow-[0_0_0_2px_#3b3670,2px_0_0_2px_#3b3670,-2px_0_0_2px_#3b3670]">
                 {value.slice(intent.start, intent.end)}
               </mark>
               {value.slice(intent.end)}

@@ -97,7 +97,7 @@ function CountBadge({ n, color }: { n: number; color: string }) {
   if (n <= 0) return null
   return (
     <span
-      className="absolute -right-px -top-px z-10 grid h-4 min-w-4 place-items-center rounded-full px-0.5 text-[9px] font-semibold leading-none text-white outline outline-2 outline-[#1A1A1A] dark:outline-white"
+      className="absolute -right-px -top-px z-10 grid h-4 min-w-4 place-items-center rounded-full px-0.5 text-[9px] font-semibold leading-none text-white opacity-0 outline outline-2 outline-[#1A1A1A] transition-opacity duration-150 group-data-[settled=true]/row:opacity-100 dark:outline-white"
       style={{ background: color }}
     >
       {n > 9 ? "9+" : n}
@@ -419,6 +419,8 @@ export function Toolbar() {
   // pin the logo where it is (first collapse) or pick the side with room to grow into (expand)
   const wasCollapsed = React.useRef(collapsed)
   const toggledAt = React.useRef(0)
+  const [settled, setSettled] = React.useState(!collapsed)
+  if (collapsed && settled) setSettled(false)
   if (wasCollapsed.current !== collapsed) toggledAt.current = Date.now()
   React.useLayoutEffect(() => {
     if (wasCollapsed.current === collapsed) return
@@ -517,14 +519,18 @@ export function Toolbar() {
             [axis]: Date.now() - toggledAt.current < 400 ? COLLAPSE : { duration: 0 },
             opacity: { duration: collapsed ? 0.08 : 0.16, delay: collapsed ? 0 : 0.02 },
           }}
-          className={cn("min-h-0 min-w-0", collapsed ? "overflow-hidden" : "overflow-visible")}
+          // badges sit just outside their buttons, so the row clips (and they stay hidden) until the
+          // bar has finished opening; they go the moment it starts closing
+          onAnimationComplete={() => !collapsed && setSettled(true)}
+          className={cn("min-h-0 min-w-0", settled ? "overflow-visible" : "overflow-hidden")}
           style={{ willChange: vertical ? "height, opacity" : "width, opacity" }}
         >
           <div
             ref={rowRef}
             inert={collapsed}
+            data-settled={settled}
             className={cn(
-              "flex items-center gap-1.5",
+              "group/row flex items-center gap-1.5",
               vertical ? "h-max flex-col" : "w-max",
               vertical ? (reversed ? "pb-1.5" : "pt-1.5") : reversed ? "pr-1.5" : "pl-1.5",
               collapsed ? "pointer-events-none" : undefined,
@@ -574,7 +580,7 @@ export function Toolbar() {
                   sharedOpen > 0 ? (
                     <CountBadge n={commentsOpen ? 0 : sharedOpen} color="#0077E6" />
                   ) : viewers > 0 ? (
-                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-500 outline outline-2 outline-[#1A1A1A] dark:outline-white" />
+                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-500 opacity-0 outline outline-2 outline-[#1A1A1A] transition-opacity duration-150 group-data-[settled=true]/row:opacity-100 dark:outline-white" />
                   ) : undefined
                 }
               />
