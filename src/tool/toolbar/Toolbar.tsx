@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "motion/react"
+import { AnimatePresence, motion } from "motion/react"
 import {
   Check,
   Copy,
@@ -161,7 +161,7 @@ function ToolButton({
 const ACTIONS_W = 80 // 6px gap after the mode button + two 36px buttons 2px apart
 
 /** Copy / Delete all, slid out of the Agent comments button while that mode is on and there are comments. */
-function AgentActions({ show, count }: { show: boolean; count: number }) {
+function AgentActions({ show, count, onDelete }: { show: boolean; count: number; onDelete: () => void }) {
   const [copied, setCopied] = React.useState(false)
   React.useEffect(() => {
     if (!copied) return
@@ -179,12 +179,84 @@ function AgentActions({ show, count }: { show: boolean; count: number }) {
       className={cn("flex shrink-0 items-center gap-0.5 overflow-hidden", vertical ? "flex-col pt-1.5" : "pl-1.5")}
     >
       <ToolButton
-        label={copied ? "Copied" : "Copy agent comments"}
+        label={copied ? "Copied" : "Copy All Comments"}
         shortcut="C"
         icon={copied ? <Check /> : <Copy />}
         onClick={() => void copyComments({ quiet: true }).then((ok) => ok && setCopied(true))}
       />
-      <ToolButton danger label={`Delete all agent comments (${count})`} icon={<Trash2 />} onClick={deleteAllComments} />
+      <ToolButton danger label={`Delete all comments (${count})`} icon={<Trash2 />} onClick={onDelete} />
+    </motion.div>
+  )
+}
+
+/** "Delete all" confirmation: a small bar that pops out from the toolbar on the side away from the screen edge. */
+function ConfirmDeleteBar({ count, onConfirm, onCancel }: { count: number; onConfirm: () => void; onCancel: () => void }) {
+  const side = React.useContext(SideContext)
+  const ref = React.useRef<HTMLDivElement>(null)
+  // Esc and clicks anywhere else dismiss it (capture, so Esc doesn't also run the toolbar's Esc chain)
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      onCancel()
+    }
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onCancel()
+    }
+    window.addEventListener("keydown", onKey, true)
+    window.addEventListener("pointerdown", onDown, true)
+    return () => {
+      window.removeEventListener("keydown", onKey, true)
+      window.removeEventListener("pointerdown", onDown, true)
+    }
+  }, [onCancel])
+  React.useEffect(() => ref.current?.querySelector<HTMLButtonElement>("[data-confirm]")?.focus(), [])
+
+  const GAP = 8
+  const place: React.CSSProperties =
+    side === "top"
+      ? { bottom: `calc(100% + ${GAP}px)`, left: "50%", x: "-50%" } as React.CSSProperties
+      : side === "bottom"
+        ? { top: `calc(100% + ${GAP}px)`, left: "50%", x: "-50%" } as React.CSSProperties
+        : side === "right"
+          ? { left: `calc(100% + ${GAP}px)`, top: 0 }
+          : { right: `calc(100% + ${GAP}px)`, top: 0 }
+  const from = side === "top" ? { y: 6 } : side === "bottom" ? { y: -6 } : side === "right" ? { x: -6 } : { x: 6 }
+  return (
+    <motion.div
+      ref={ref}
+      role="alertdialog"
+      aria-label="Delete all comments?"
+      initial={{ opacity: 0, scale: 0.96, ...from }}
+      animate={{ opacity: 1, scale: 1, x: (place as { x?: string }).x ?? 0, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, ...from, transition: { duration: 0.1 } }}
+      transition={{ type: "spring", visualDuration: 0.2, bounce: 0.15 }}
+      style={place}
+      className={cn(
+        "absolute z-10 flex h-10 items-center gap-1 whitespace-nowrap rounded-full p-1 pl-4 text-[13px]",
+        "bg-[#1A1A1A] text-white/85 shadow-[0_2px_8px_#00000033,0_4px_16px_#0000001a]",
+        "dark:bg-white dark:text-[#1A1A1A]/80 dark:shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_2px_8px_#0000001a,0_4px_16px_#0000000f]",
+      )}
+    >
+      <span className="mr-2">
+        Delete all {count} comment{count === 1 ? "" : "s"}?
+      </span>
+      <button
+        type="button"
+        data-confirm
+        onClick={onConfirm}
+        className="h-8 rounded-full bg-[#e5484d] px-3 font-medium text-white outline-none transition-[background-color,transform] duration-150 hover:bg-[#dc3e42] focus-visible:ring-2 focus-visible:ring-[#e5484d]/40 active:scale-[0.96]"
+      >
+        Yes, I am sure
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="h-8 rounded-full px-3 font-medium text-white/85 outline-none transition-[background-color,transform] duration-150 hover:bg-white/10 focus-visible:bg-white/10 active:scale-[0.96] dark:text-[#1A1A1A]/80 dark:hover:bg-black/[0.05] dark:focus-visible:bg-black/[0.05]"
+      >
+        Not Now
+      </button>
     </motion.div>
   )
 }
@@ -227,6 +299,8 @@ export function Toolbar() {
   const open = agentComments.filter((c) => c.status === "open")
   const sharedOpen = comments.filter((c) => c.source === "viewer" && c.status === "open").length
   const viewers = useShareViewers()
+  const [confirmDelete, setConfirmDelete] = React.useState(false)
+  const cancelDelete = React.useCallback(() => setConfirmDelete(false), [])
 
   const shellRef = React.useRef<HTMLDivElement>(null)
   const dragDist = React.useRef(0)
@@ -242,6 +316,11 @@ export function Toolbar() {
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
   const collapsed = useTool((s) => s.toolbarCollapsed)
+  // the question only stands while the Delete all button it came from is on screen
+  const confirming = confirmDelete && mode === "comment" && agentComments.length > 0 && !collapsed
+  React.useEffect(() => {
+    if (confirmDelete && !confirming) setConfirmDelete(false)
+  }, [confirmDelete, confirming])
   const setCollapsed = React.useCallback((v: boolean | ((c: boolean) => boolean)) => {
     const st = useTool.getState()
     st.setToolbarCollapsed(typeof v === "function" ? v(st.toolbarCollapsed) : v)
@@ -364,7 +443,19 @@ export function Toolbar() {
       className={cn("fixed z-[60]", pos ? undefined : "bottom-5 left-1/2 -translate-x-1/2")}
       style={anchor}
     >
-      <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.15 }}>
+      <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.15 }} className="relative">
+        <AnimatePresence>
+          {confirming && (
+            <ConfirmDeleteBar
+              count={agentComments.length}
+              onCancel={cancelDelete}
+              onConfirm={() => {
+                deleteAllComments()
+                setConfirmDelete(false)
+              }}
+            />
+          )}
+        </AnimatePresence>
         <div
           ref={shellRef}
           data-pc-tool
@@ -432,7 +523,7 @@ export function Toolbar() {
               onClick={() => toggleMode("comment")}
               badge={<CountBadge n={mode === "comment" ? 0 : open.length} color="#0077E6" />}
             />
-            <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} />
+            <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} onDelete={() => setConfirmDelete(true)} />
             </AgentGroup>
             <ToolButton
               active={mode === "variants"}
