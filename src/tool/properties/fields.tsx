@@ -487,6 +487,58 @@ export function IconBtn({ label, active, onClick, children }: { label: string; a
   )
 }
 
+/** Multi-line text box that grows with its content. Enter commits, Shift+Enter breaks the line, Escape cancels. */
+export function TextAreaField({
+  value,
+  onChange,
+  onFocus,
+  onCommit,
+  onCancel,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onFocus?: () => void
+  onCommit: () => void
+  onCancel: () => void
+  placeholder?: string
+}) {
+  const ref = React.useRef<HTMLTextAreaElement>(null)
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+  return (
+    <div className={cn(FIELD, FIELD_FOCUS, "flex")}>
+      <textarea
+        ref={ref}
+        rows={1}
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        onFocus={onFocus}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            onCommit()
+            e.currentTarget.blur()
+          } else if (e.key === "Escape") {
+            e.preventDefault()
+            e.stopPropagation()
+            onCancel()
+            e.currentTarget.blur()
+          }
+        }}
+        className="max-h-40 min-h-8 w-full resize-none bg-transparent px-2.5 py-[7px] text-[12px] leading-[18px] text-foreground outline-none placeholder:text-muted-foreground"
+      />
+    </div>
+  )
+}
+
 export function CheckRow({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
     <label className="flex h-6 w-fit cursor-pointer select-none items-center gap-2 text-[12px] text-foreground/85">

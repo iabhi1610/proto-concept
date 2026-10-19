@@ -38,7 +38,9 @@ function place(u: Box, h: number, rightInset = 0) {
 export function EditPopover() {
   const mode = useTool((s) => s.mode)
   const selection = useTool((s) => s.selection)
-  const open = (mode === "comment" || mode === "variants") && selection.length > 0
+  // steps aside while copy is typed in place (double-click), so it never covers the text
+  const typingInPlace = useTool((s) => !!s.textDraft)
+  const open = (mode === "comment" || mode === "variants") && selection.length > 0 && !typingInPlace
   const boxes = useLiveBoxes(open ? selection : [])
   const union = unionBox(selection.map((id) => boxes[id]))
   const [h, setH] = React.useState(320)

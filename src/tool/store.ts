@@ -57,6 +57,9 @@ interface ToolState {
   anchor: { x: number; y: number } | null
   select: (ids: string[], anchor?: { x: number; y: number } | null) => void
   clearSelection: () => void
+  /** copy being typed in place (double-click): mirrored live into the Properties text field */
+  textDraft: { elId: string; text: string } | null
+  setTextDraft: (d: { elId: string; text: string } | null) => void
   /** comment currently being viewed / edited through its pin */
   activeCommentId: string | null
   openComment: (id: string | null) => void
@@ -228,6 +231,8 @@ export const useTool = create<ToolState>()(
       tab: "prompt",
       setTab: (tab) => set({ tab }),
       propsCommentId: null,
+      textDraft: null,
+      setTextDraft: (textDraft) => set({ textDraft }),
 
       ...initialDoc(),
       past: [],

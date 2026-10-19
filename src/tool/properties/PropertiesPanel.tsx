@@ -3,10 +3,11 @@ import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowRight, CaseLower, C
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import type { ComponentDef } from "@/product/system/define"
-import { applyProps } from "../actions"
+import { applyProps, applyText } from "../actions"
 import { buildElementMarkdown, copyText } from "../copy"
 import { CustomSection } from "./CustomSection"
 import { elInfo, findEl, px, readSnapshot } from "../engine/dom"
+import { endPreview, hasOwnText, previewText, readText } from "../engine/textEdit"
 import { useTool } from "../store"
 import {
   AddRow,
@@ -19,6 +20,7 @@ import {
   ScrubField,
   Section,
   Seg,
+  TextAreaField,
   SizeField,
   TokenInput,
   type Axis,
@@ -331,6 +333,7 @@ export function PropertiesPanel({ state, fill }: { state: string; fill?: boolean
         </button>
       ) : (
         <>
+          {selection.length === 1 && hasOwnText(el) && <CopySection el={el} elId={selection[0]} />}
           {/* generated panels lead, newest first */}
           {panels?.map((p) => <CustomSection key={p.id} elId={selection[0]} panel={p} />)}
           {/* fixed order; sections that aren't set yet sit in place as "+" rows */}
@@ -338,6 +341,61 @@ export function PropertiesPanel({ state, fill }: { state: string; fill?: boolean
         </>
       )}
     </div>
+  )
+}
+
+/** The layer's copy, editable here or in place (double-click); each mirrors the other as it's typed. */
+function CopySection({ el, elId }: { el: HTMLElement; elId: string }) {
+  const draft = useTool((s) => (s.textDraft?.elId === elId ? s.textDraft.text : null))
+  const ops = useTool((s) => s.ops)
+  const [value, setValue] = React.useState(() => draft ?? readText(el))
+  // the copy when the field took focus; null while it isn't being typed in
+  const before = React.useRef<string | null>(null)
+
+  // follow in-place typing, commits and undo / redo, but never while the field itself is being typed in
+  React.useEffect(() => {
+    if (before.current !== null) return
+    if (draft !== null) return setValue(draft)
+    const raf = requestAnimationFrame(() => setValue(readText(el)))
+    return () => cancelAnimationFrame(raf)
+  }, [draft, ops, el])
+
+  const finish = (commit: boolean) => {
+    const start = before.current
+    if (start === null) return
+    before.current = null
+    const text = value.trim()
+    if (commit && text && text !== start) {
+      // lands as the same pinned "Changed text" change a double-click edit makes
+      applyText(el, text)
+      endPreview(el)
+    } else {
+      endPreview(el, start)
+      setValue(start)
+    }
+  }
+  // switching layers unmounts the field without a blur, so commit on the way out
+  const finishRef = React.useRef(finish)
+  finishRef.current = finish
+  React.useEffect(() => () => finishRef.current(true), [])
+
+  return (
+    <Section title="Text">
+      <TextAreaField
+        value={value}
+        placeholder="Text"
+        onFocus={() => {
+          before.current = readText(el)
+        }}
+        onChange={(v) => {
+          setValue(v)
+          // an empty text node would lose its place next to icons; the page keeps the last copy until there's text again
+          if (v.trim()) previewText(el, v)
+        }}
+        onCommit={() => finish(true)}
+        onCancel={() => finish(false)}
+      />
+    </Section>
   )
 }
 
