@@ -257,14 +257,14 @@ function OptionCard({
         </div>
         <div className="flex items-center gap-0.5">
           {applied ? (
-            <span className="flex h-7 items-center gap-1 px-1 text-[12.5px] font-medium text-[var(--pc-variant)] [&_svg]:size-3.5">
+            <span className="-ml-1 flex h-7 items-center gap-1 rounded-full bg-[color-mix(in_oklab,var(--pc-variant),transparent_90%)] px-2.5 text-[12.5px] font-medium text-[var(--pc-variant)] [&_svg]:size-3.5">
               <Check /> On screen
             </span>
           ) : (
-            // a quiet text button at rest that turns solid while the card is hovered (instantly)
+            // a quiet text button at rest that picks up a purple border while the card is hovered (instantly)
             <button
               onClick={own(addToScreen)}
-              className="-ml-1 flex h-7 items-center gap-1 rounded-full px-2 text-[12.5px] font-medium text-[var(--pc-variant)] group-hover/card:bg-[var(--pc-variant)] group-hover/card:px-3 group-hover/card:text-white group-focus-within/card:bg-[var(--pc-variant)] group-focus-within/card:px-3 group-focus-within/card:text-white active:scale-[0.97] [&_svg]:size-3.5"
+              className="-ml-1 flex h-7 items-center gap-1 rounded-full px-2.5 text-[12.5px] font-medium text-[var(--pc-variant)] shadow-[inset_0_0_0_1px_transparent] group-hover/card:shadow-[inset_0_0_0_1px_var(--pc-variant)] group-focus-within/card:shadow-[inset_0_0_0_1px_var(--pc-variant)] active:scale-[0.97] [&_svg]:size-3.5"
             >
               <Plus /> Add to screen
             </button>

@@ -7,6 +7,8 @@ import type { VariantOption, VariantSet } from "../../types"
 
 /** last measured preview height per set/option, so a deferred preview's placeholder has the right size */
 export const previewHeights = new Map<string, number>()
+/** the width each set's previews render at, fixed on first use */
+const setWidths = new Map<string, number>()
 
 const previewCtx = { screen: "overview" as const, navigate: () => {}, preview: true }
 
@@ -28,8 +30,15 @@ export function VariantPreview({ set, option, maxHeight = 150 }: { set: VariantS
   const cloneHost = React.useRef<HTMLDivElement>(null)
   const [scale, setScale] = React.useState(0.5)
   const [h, setH] = React.useState(80)
-  const live = findEl(set.elId)
-  const naturalW = Math.max(120, Math.round(live?.getBoundingClientRect().width ?? 600))
+  // every card in a set renders at the same width: the element's width the first time the set is
+  // previewed. Reading it live would re-scale and shift all the previews whenever a variant with a
+  // different width goes on screen.
+  let naturalW = setWidths.get(set.id)
+  if (!naturalW) {
+    const live = findEl(set.elId)
+    naturalW = Math.max(120, Math.round(live?.getBoundingClientRect().width ?? 600))
+    if (live) setWidths.set(set.id, naturalW)
+  }
   const optionId = option === "original" ? "original" : option.id
   const seeded = SEEDED[set.id]
 
