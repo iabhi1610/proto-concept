@@ -168,7 +168,8 @@ function ViewerApp({ shareId, data }: { shareId: string; data: SharePayload }) {
   const [name, setNameState] = React.useState(() => localStorage.getItem("pc-viewer-name") ?? "")
   const [comments, setComments] = React.useState<Comment[]>(() => data.comments ?? [])
   const [viewers, setViewers] = React.useState(0)
-  const [commenting, setCommenting] = React.useState(false)
+  // a comment link opens straight into comment mode
+  const [commenting, setCommenting] = React.useState(data.config.role === "comment")
   const socketRef = React.useRef<ReturnType<typeof openSocket> | null>(null)
   const embed = new URLSearchParams(location.search).has("embed")
 
@@ -206,7 +207,7 @@ function ViewerApp({ shareId, data }: { shareId: string; data: SharePayload }) {
           <StyleInjector />
           {data.config.role === "comment" && <ViewerComments />}
           {!embed && <ViewerChrome />}
-          <Toaster position="top-center" offset={16} />
+          <Toaster position="top-center" offset={16} theme="dark" className="toaster group pc-inverse" />
         </div>
       </TooltipProvider>
     </ViewerContext.Provider>

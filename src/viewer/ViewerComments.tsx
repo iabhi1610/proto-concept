@@ -11,11 +11,13 @@ import { elInfo, findEl, inspectableFrom, productRoot } from "@/tool/engine/dom"
 import { DashedOutline } from "@/tool/overlay/DashedOutline"
 import { useLiveBox, useLiveBoxes } from "@/tool/overlay/geometry"
 import { postComment } from "@/tool/share/client"
-import { uid, useTool } from "@/tool/store"
+import { SHARED_TEAL, initialsOf as initials, uid, useTool } from "@/tool/store"
 import type { Comment } from "@/tool/types"
 import { useViewer } from "./Viewer"
 
-const BLUE = "#0088FF"
+/** viewer comments are teal, so they never read as the designer's blue agent comments */
+export const TEAL = SHARED_TEAL
+const BLUE = TEAL
 
 interface Draft {
   elId: string
@@ -88,7 +90,6 @@ export function ViewerComments() {
   React.useEffect(() => setDraft(null), [screen])
 
   const onScreen = comments.filter((c) => c.screen === screen && c.elIds[0])
-  const numbered = comments.map((c, i) => ({ ...c, number: i + 1 }))
   const boxes = useLiveBoxes(onScreen.map((c) => c.elIds[0]))
   const hoverBox = useLiveBox(commenting && hoverId !== draft?.elId ? hoverId : null)
   const hoverEl = hoverId ? findEl(hoverId) : null
@@ -98,7 +99,7 @@ export function ViewerComments() {
       {/* hover outline */}
       {commenting && hoverBox && hoverEl && (
         <div className="pointer-events-none fixed z-30" style={{ left: hoverBox.x, top: hoverBox.y, width: hoverBox.w, height: hoverBox.h }}>
-          <div className="absolute inset-0 rounded-[3px]" style={{ background: "rgb(59 130 246 / 0.04)" }}>
+          <div className="absolute inset-0 rounded-[3px]" style={{ background: "rgb(13 148 136 / 0.05)" }}>
             <DashedOutline color={BLUE} width={1} inside />
           </div>
           <span
@@ -117,7 +118,6 @@ export function ViewerComments() {
             {onScreen.map((c) => {
               const b = boxes[c.elIds[0]]
               if (!b) return null
-              const n = numbered.find((x) => x.id === c.id)!.number
               const ax = c.anchor?.x ?? 1
               const ay = c.anchor?.y ?? 0
               return (
@@ -128,18 +128,19 @@ export function ViewerComments() {
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 520, damping: 26 }}
                   className="pointer-events-auto absolute"
-                  style={{ left: b.x + b.w * ax - 11, top: b.y + b.h * ay - 11 }}
+                  style={{ left: b.x + b.w * ax - 12, top: b.y + b.h * ay - 12 }}
                   onPointerEnter={() => setPeek(c.id)}
                   onPointerLeave={() => setPeek((p) => (p === c.id ? null : p))}
                 >
                   <span
+                    title={c.author}
                     className={cn(
-                      "tabular grid size-[22px] cursor-default place-items-center rounded-full border-2 border-white text-[11px] font-semibold text-white shadow-[0_2px_6px_rgb(0_0_0/0.25)]",
+                      "grid size-6 cursor-default place-items-center rounded-full rounded-bl-[5px] border-2 border-white text-[9.5px] font-semibold tracking-[0.02em] text-white shadow-[0_2px_6px_rgb(0_0_0/0.25)]",
                       c.status === "resolved" && "opacity-50",
                     )}
                     style={{ background: BLUE }}
                   >
-                    {n}
+                    {initials(c.author)}
                   </span>
                   <AnimatePresence>
                     {peek === c.id && (
@@ -148,7 +149,7 @@ export function ViewerComments() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 4, scale: 0.97 }}
                         transition={{ duration: 0.14 }}
-                        className="pc-shadow absolute left-7 top-0 w-[240px] rounded-xl bg-popover p-3 text-popover-foreground"
+                        className="pc-inverse pc-shadow absolute left-8 top-0 w-[240px] rounded-xl bg-popover p-3 text-popover-foreground"
                       >
                         <div className="flex items-center gap-2">
                           <Initials name={c.author} />
@@ -158,7 +159,7 @@ export function ViewerComments() {
                         <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground">{c.text}</p>
                         <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">
                           on {c.elNames[0]}
-                          {c.status === "resolved" && <span className="ml-1.5 rounded bg-emerald-500/12 px-1 font-medium text-emerald-600">Resolved</span>}
+                          {c.status === "resolved" && <span className="ml-1.5 rounded bg-emerald-500/15 px-1 font-medium text-emerald-400">Resolved</span>}
                         </span>
                         {/* the owner's replies arrive live over the share socket */}
                         {(c.replies?.length ?? 0) > 0 && (
@@ -262,10 +263,10 @@ function Composer({ draft, nextNumber, onClose }: { draft: Draft; nextNumber: nu
         animate={{ scale: 1 }}
         exit={{ scale: 0 }}
         transition={{ type: "spring", stiffness: 520, damping: 26 }}
-        className="pointer-events-none fixed z-40 grid size-[22px] place-items-center rounded-full border-2 border-white text-[11px] font-semibold text-white shadow-[0_2px_6px_rgb(0_0_0/0.25)]"
-        style={{ left: box.x + box.w * draft.anchor.x - 11, top: box.y + box.h * draft.anchor.y - 11, background: BLUE }}
+        className="pointer-events-none fixed z-40 grid size-6 place-items-center rounded-full rounded-bl-[5px] border-2 border-white text-[9.5px] font-semibold tracking-[0.02em] text-white shadow-[0_2px_6px_rgb(0_0_0/0.25)]"
+        style={{ left: box.x + box.w * draft.anchor.x - 12, top: box.y + box.h * draft.anchor.y - 12, background: BLUE }}
       >
-        {nextNumber}
+        {name ? initials(name) : "?"}
       </motion.span>
       <div className="pointer-events-none fixed z-30 rounded-[3px] border-[1.5px]" style={{ left: box.x, top: box.y, width: box.w, height: box.h, borderColor: BLUE }} />
       <div ref={refs.setFloating} style={floatingStyles} className="z-50" data-pc-tool>
@@ -274,7 +275,7 @@ function Composer({ draft, nextNumber, onClose }: { draft: Draft; nextNumber: nu
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 4 }}
           transition={{ type: "spring", stiffness: 500, damping: 34 }}
-          className="pc-shadow w-[300px] rounded-2xl bg-popover p-3 text-popover-foreground"
+          className="pc-inverse pc-shadow w-[300px] rounded-2xl bg-popover p-3 text-popover-foreground"
         >
           <div className="mb-2 flex items-center gap-2">
             <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-muted-foreground">{elInfo(el).name}</span>
@@ -336,7 +337,7 @@ function NameDialog({ open, onCancel, onSave }: { open: boolean; onCancel: () =>
   const [value, setValue] = React.useState("")
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="sm:max-w-[360px]" showCloseButton={false}>
+      <DialogContent className="pc-inverse bg-popover text-popover-foreground sm:max-w-[360px]" showCloseButton={false}>
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
@@ -364,13 +365,7 @@ function NameDialog({ open, onCancel, onSave }: { open: boolean; onCancel: () =>
 }
 
 function Initials({ name }: { name: string }) {
-  const i = name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-  return <span className="grid size-5 place-items-center rounded-full bg-[color-mix(in_oklab,#3b82f6,white_80%)] text-[9.5px] font-semibold text-[#1d4ed8]">{i}</span>
+  return <span className="grid size-5 place-items-center rounded-full text-[9.5px] font-semibold text-white" style={{ background: TEAL }}>{initials(name)}</span>
 }
 
 function timeAgo(t: number) {

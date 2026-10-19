@@ -4,7 +4,7 @@ import { Check, Loader2, Pencil, Sparkles } from "@/lib/icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { letterFor } from "../actions"
-import { useTool } from "../store"
+import { SHARED_TEAL, initialsOf, useTool } from "../store"
 import type { Comment } from "../types"
 import { DashedOutline } from "./DashedOutline"
 import { useLiveBoxes } from "./geometry"
@@ -91,6 +91,66 @@ function Pin({ comment, x, y, active, secondary, onClick }: { comment: Comment; 
         <span className="line-clamp-3 text-[12px] leading-snug">{comment.text}</span>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+/* ───────────────────────── shared-link comment pins ───────────────────────── */
+
+/** While Comments is open: each viewer's comment as a teal pin with their initials, linked to its card. */
+export function SharedPins() {
+  const open = useTool((s) => s.commentsOpen && s.mode !== "flow")
+  const screen = useTool((s) => s.screen)
+  const comments = useTool((s) => s.comments)
+  const focusId = useTool((s) => s.sharedFocusId)
+  const visible = React.useMemo(
+    () => (open ? comments.filter((c) => c.source === "viewer" && c.screen === screen && c.elIds[0]) : []),
+    [open, comments, screen],
+  )
+  const boxes = useLiveBoxes(React.useMemo(() => visible.map((c) => c.elIds[0]), [visible]))
+
+  return (
+    <AnimatePresence>
+      {visible.map((c) => {
+        const b = boxes[c.elIds[0]]
+        if (!b) return null
+        const ax = Math.min(Math.max(c.anchor?.x ?? 1, 0), 1)
+        const ay = Math.min(Math.max(c.anchor?.y ?? 0, 0), 1)
+        const resolved = c.status === "resolved"
+        const active = focusId === c.id
+        return (
+          <Tooltip key={c.id}>
+            <TooltipTrigger asChild>
+              <motion.button
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: active ? 1.12 : 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={spring}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  useTool.getState().setSharedFocus(c.id)
+                }}
+                data-pc-tool
+                aria-label={`Comment from ${c.author}`}
+                className={cn(
+                  "fixed z-[44] grid size-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer place-items-center rounded-full rounded-bl-[5px] font-sans text-[9.5px] font-semibold tracking-[0.02em] text-white before:absolute before:-inset-2.5 before:rounded-full before:content-['']",
+                  "shadow-[0_0_0_2px_white,0_2px_8px_rgb(0_0_0/0.25)] transition-[filter] hover:brightness-110",
+                  resolved && "opacity-50",
+                  active && "shadow-[0_0_0_2px_white,0_0_0_5px_rgb(13_148_136/0.35),0_2px_8px_rgb(0_0_0/0.25)]",
+                )}
+                style={{ left: b.x + ax * b.w, top: b.y + ay * b.h, background: SHARED_TEAL }}
+              >
+                {initialsOf(c.author)}
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={10} className="max-w-[260px] flex-col items-start gap-0.5 py-2">
+              <span className="text-[10.5px] font-medium opacity-60">{c.author}</span>
+              <span className="line-clamp-3 text-[12px] leading-snug">{c.text}</span>
+            </TooltipContent>
+          </Tooltip>
+        )
+      })}
+    </AnimatePresence>
   )
 }
 

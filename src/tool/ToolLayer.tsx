@@ -6,7 +6,7 @@ import { VariantsMode } from "./modes/variants/VariantsMode"
 import { type Box } from "./overlay/geometry"
 import { Highlights } from "./overlay/Highlights"
 import { Interaction } from "./overlay/Interaction"
-import { CommentPins, VariantPins } from "./overlay/Pins"
+import { CommentPins, SharedPins, VariantPins } from "./overlay/Pins"
 import { EditPopover } from "./popover/EditPopover"
 import { RaisePRCard, ShortcutsDialog } from "./toolbar/Panels"
 import { SharedCommentsSidebar } from "./toolbar/SharedComments"
@@ -29,6 +29,7 @@ export function ToolLayer() {
       <Highlights marquee={marquee} />
       <VariantPins />
       <CommentPins />
+      <SharedPins />
       <EditPopover />
       <VariantsMode />
       <SharedCommentsSidebar />

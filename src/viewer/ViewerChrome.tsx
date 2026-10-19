@@ -1,16 +1,34 @@
 import * as React from "react"
 import { motion } from "motion/react"
-import { Check, Eye, Layers, MessageSquarePlus } from "@/lib/icons"
+import { Check, Eye, MessageSquarePlus, Shapes } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { screenMeta } from "@/product/screens"
-import { OrbitLogo } from "@/product/shell"
 import { letterFor } from "@/tool/actions"
 import { useTool } from "@/tool/store"
+import { LogoMark } from "@/tool/toolbar/Toolbar"
+import { TEAL } from "./ViewerComments"
 import { useViewer } from "./Viewer"
 
-const Divider = () => <span className="mx-1 h-5 w-px bg-border" />
+const Divider = () => <span aria-hidden className="mx-[3px] h-3 w-px shrink-0 bg-white/15" />
+
+/** Same pill as the editor toolbar: dark, 46px, icon buttons with tooltips. */
+const iconBtn =
+  "relative grid size-9 shrink-0 place-items-center rounded-full outline-none transition-[background-color,color,transform] duration-150 active:scale-[0.94] [&_svg]:size-[18px]"
+const idle = "text-white/85 hover:bg-white/10 hover:text-white data-[state=open]:bg-white data-[state=open]:text-[#1a1a1a]"
+
+function Badge({ n, color }: { n: number; color: string }) {
+  if (n <= 0) return null
+  return (
+    <span
+      className="absolute -right-px -top-px z-10 grid h-4 min-w-4 place-items-center rounded-full px-0.5 text-[9px] font-semibold leading-none text-white outline outline-2 outline-[#1A1A1A]"
+      style={{ background: color }}
+    >
+      {n > 9 ? "9+" : n}
+    </span>
+  )
+}
 
 export function ViewerChrome() {
   const { data, comments, viewers, commenting, setCommenting } = useViewer()
@@ -19,24 +37,26 @@ export function ViewerChrome() {
   const sets = allSets.filter((v) => data.config.variantSets.includes(v.id))
   const canComment = data.config.role === "comment"
   const openCount = comments.filter((c) => c.status !== "resolved").length
+  const watching = Math.max(1, viewers)
 
   return (
     <motion.div
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 420, damping: 32, delay: 0.15 }}
-      className="pc-glass pc-shadow fixed bottom-5 left-1/2 z-40 flex h-12 -translate-x-1/2 items-center gap-1 rounded-full pl-2 pr-2"
+      className="pc-inverse fixed bottom-5 left-1/2 z-40 flex h-[46px] -translate-x-1/2 items-center gap-1.5 rounded-[23px] bg-[#1A1A1A] p-[5px] text-white shadow-[0_2px_8px_#00000033,0_4px_16px_#0000001a]"
       data-pc-tool
     >
-      <div className="flex items-center gap-2 pl-1 pr-2">
-        <OrbitLogo className="size-7" />
-        <div className="flex flex-col leading-tight">
-          <span className="text-[12.5px] font-semibold text-foreground">Orbit Analytics</span>
-          <span className="text-[11px] text-muted-foreground">
-            {screenMeta(screen).title} · shared via Proto Concept
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="grid size-9 shrink-0 place-items-center rounded-full">
+            <LogoMark />
           </span>
-        </div>
-      </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={10}>
+          Orbit Analytics · {screenMeta(screen).title} — shared via Proto Concept
+        </TooltipContent>
+      </Tooltip>
 
       {canComment && (
         <>
@@ -45,48 +65,36 @@ export function ViewerChrome() {
             <TooltipTrigger asChild>
               <button
                 type="button"
+                aria-label="Comment"
+                aria-pressed={commenting}
                 onClick={() => setCommenting(!commenting)}
-                className={cn(
-                  "relative flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-colors",
-                  commenting ? "bg-[var(--pc-comment)] text-white" : "text-foreground hover:bg-accent",
-                )}
+                className={cn(iconBtn, commenting ? "text-white" : idle)}
+                style={commenting ? { background: TEAL } : undefined}
               >
-                <MessageSquarePlus className="size-4" />
-                Comment
-                {openCount > 0 && (
-                  <span
-                    className={cn(
-                      "tabular grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10.5px] font-semibold",
-                      commenting ? "bg-white/25 text-white" : "bg-[var(--pc-comment)] text-white",
-                    )}
-                  >
-                    {openCount}
-                  </span>
-                )}
+                <MessageSquarePlus />
+                <Badge n={commenting ? 0 : openCount} color={TEAL} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">{commenting ? "Exit comment mode (Esc)" : "Click any element to leave feedback"}</TooltipContent>
+            <TooltipContent side="top" sideOffset={10}>{commenting ? "Exit comment mode (Esc)" : "Comment — click any element to leave feedback"}</TooltipContent>
           </Tooltip>
         </>
       )}
 
       {sets.length > 0 && (
         <>
-          <Divider />
           <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium text-foreground transition-colors hover:bg-accent data-[state=open]:bg-accent"
-              >
-                <Layers className="size-4 text-[var(--pc-variant)]" />
-                Variants
-                <span className="tabular grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[color-mix(in_oklab,var(--pc-variant),transparent_85%)] px-1 text-[10.5px] font-semibold text-[var(--pc-variant)]">
-                  {sets.length}
-                </span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="top" sideOffset={12} className="w-[360px] gap-0 p-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <button type="button" aria-label="Variants" className={cn(iconBtn, idle)}>
+                    <Shapes />
+                    <Badge n={sets.length} color="#5E52ED" />
+                  </button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={10}>Compare variants</TooltipContent>
+            </Tooltip>
+            <PopoverContent side="top" sideOffset={12} className="pc-inverse w-[360px] gap-0 bg-popover p-0 text-popover-foreground">
               <div className="border-b border-border px-4 py-3">
                 <div className="text-[13px] font-semibold">Compare variants</div>
                 <div className="text-[12px] text-muted-foreground">Switch between the directions the designer is exploring.</div>
@@ -141,17 +149,16 @@ export function ViewerChrome() {
       <Divider />
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium text-muted-foreground">
-            <span className="relative flex size-2">
+          <span aria-label={`${watching} viewing`} className="relative grid size-9 shrink-0 place-items-center rounded-full text-white/85 [&_svg]:size-[18px]">
+            <Eye />
+            <span className="absolute right-1.5 top-1.5 flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500 outline outline-2 outline-[#1A1A1A]" />
             </span>
-            <Eye className="size-3.5" />
-            <span className="tabular">{Math.max(1, viewers)}</span>
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top">
-          {Math.max(1, viewers)} {Math.max(1, viewers) === 1 ? "person" : "people"} viewing now
+        <TooltipContent side="top" sideOffset={10}>
+          {watching} {watching === 1 ? "person" : "people"} viewing now
         </TooltipContent>
       </Tooltip>
     </motion.div>

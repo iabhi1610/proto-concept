@@ -93,6 +93,9 @@ interface ToolState {
   /* panels / dialogs */
   commentsOpen: boolean
   setCommentsOpen: (v: boolean) => void
+  /** the shared-link comment picked from its pin or its card (they highlight each other) */
+  sharedFocusId: string | null
+  setSharedFocus: (id: string | null) => void
   shareOpen: boolean
   setShareOpen: (v: boolean) => void
   paperOpen: boolean
@@ -136,8 +139,9 @@ export const useTool = create<ToolState>()(
           activeCommentId: null,
           propsCommentId: null,
           activeSetId: mode === "variants" ? get().activeSetId : null,
-          // picking a tool (A, V, F…) brings a collapsed toolbar back
-          ...(mode !== "browse" ? { toolbarCollapsed: false } : {}),
+          // picking a tool (A, V, F…) brings a collapsed toolbar back and leaves Comments,
+          // which is a mode of its own
+          ...(mode !== "browse" ? { toolbarCollapsed: false, commentsOpen: false, sharedFocusId: null } : {}),
         }),
       toggleMode: (m) => get().setMode(get().mode === m ? "browse" : m),
       toolbarCollapsed: false,
@@ -278,7 +282,15 @@ export const useTool = create<ToolState>()(
       setPreviewOption: (previewOption) => set({ previewOption }),
 
       commentsOpen: false,
-      setCommentsOpen: (commentsOpen) => set(commentsOpen ? { commentsOpen, activeSetId: null } : { commentsOpen }),
+      // Comments is its own mode: opening it steps out of Agent comments / Variants (their pins and
+      // tags hide) and only the shared-link comments show, as pins and in the sidebar
+      setCommentsOpen: (commentsOpen) => {
+        if (!commentsOpen) return set({ commentsOpen, sharedFocusId: null })
+        if (get().mode !== "browse") get().setMode("browse")
+        set({ commentsOpen, activeSetId: null, toolbarCollapsed: false })
+      },
+      sharedFocusId: null,
+      setSharedFocus: (sharedFocusId) => set({ sharedFocusId }),
       shareOpen: false,
       setShareOpen: (shareOpen) => set({ shareOpen }),
       paperOpen: false,
@@ -331,6 +343,11 @@ export const useTool = create<ToolState>()(
 /* ───────── selectors / helpers ───────── */
 
 /** width of the docked variants sidebar (the product reflows by this much) */
+/** comments left through a share link are teal everywhere, apart from the blue agent comments */
+export const SHARED_TEAL = "#0D9488"
+export const initialsOf = (name: string) =>
+  name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?"
+
 export const SIDEBAR_W = 392
 
 /** agent comments and shared-link comments are numbered separately */

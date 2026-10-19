@@ -6,7 +6,7 @@ import { screenMeta } from "@/product/screens"
 import { useLiveBoxes } from "../overlay/geometry"
 import { jumpToShared, replyToShared, sendSharedToAgent, toggleSharedResolved } from "../share/actions"
 import { useShareViewers } from "../share/useShareSync"
-import { SIDEBAR_W, useTool } from "../store"
+import { SHARED_TEAL, SIDEBAR_W, initialsOf, useTool } from "../store"
 import type { Comment } from "../types"
 import { DockToggle, panelShell } from "./DockToggle"
 
@@ -26,6 +26,15 @@ export function SharedCommentsSidebar() {
   const viewers = useShareViewers()
   const [filter, setFilter] = React.useState<"open" | "resolved">("open")
   const [flash, setFlash] = React.useState<string | null>(null)
+  const focusId = useTool((s) => s.sharedFocusId)
+  // a pin picked on the page brings its card into view (and switches to the tab it's in)
+  React.useEffect(() => {
+    if (!focusId) return
+    const c = comments.find((x) => x.id === focusId)
+    if (c && c.status !== filter) setFilter(c.status)
+    requestAnimationFrame(() => document.querySelector(`[data-shared-card="${focusId}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId])
   const shared = comments.filter((c) => c.source === "viewer")
   const list = shared.filter((c) => c.status === filter).sort((a, b) => b.createdAt - a.createdAt)
   const docked = layout === "sidebar"
@@ -90,9 +99,11 @@ export function SharedCommentsSidebar() {
                       <SharedCard
                         key={c.id}
                         c={c}
+                        focused={focusId === c.id}
                         onJump={() => {
                           jumpToShared(c)
                           setFlash(c.elIds[0] ?? null)
+                          useTool.getState().setSharedFocus(c.id)
                         }}
                       />
                     ))}
@@ -107,7 +118,7 @@ export function SharedCommentsSidebar() {
   )
 }
 
-function SharedCard({ c, onJump }: { c: Comment; onJump: () => void }) {
+function SharedCard({ c, focused, onJump }: { c: Comment; focused: boolean; onJump: () => void }) {
   const [replying, setReplying] = React.useState(false)
   const [text, setText] = React.useState("")
   const ref = React.useRef<HTMLTextAreaElement>(null)
@@ -125,7 +136,12 @@ function SharedCard({ c, onJump }: { c: Comment; onJump: () => void }) {
       exit={{ opacity: 0, height: 0, marginTop: 0 }}
       transition={{ duration: 0.2, ease: EASE }}
       onClick={onJump}
-      className={cn("group cursor-pointer rounded-xl border border-border bg-background p-3 transition-colors hover:border-[color-mix(in_oklab,var(--pc-comment),transparent_55%)]", resolved && "opacity-70")}
+      data-shared-card={c.id}
+      className={cn(
+        "group cursor-pointer rounded-xl border border-border bg-background p-3 transition-[border-color,box-shadow] hover:border-[color-mix(in_oklab,#0D9488,transparent_45%)]",
+        focused && "border-[#0D9488] shadow-[0_0_0_1px_#0D9488] hover:border-[#0D9488]",
+        resolved && "opacity-70",
+      )}
     >
       <div className="flex items-center gap-2">
         <Initials name={c.author} />
@@ -233,8 +249,9 @@ function SendToAgent({ c }: { c: Comment }) {
     <Pill
       onClick={() => {
         if (sent) return
-        sendSharedToAgent(c)
         setSent(true)
+        // let the check land before Agent comments takes over (that mode closes this sidebar)
+        window.setTimeout(() => sendSharedToAgent(c), 650)
       }}
       className={cn(
         "overflow-hidden transition-[background-color,border-color,color] duration-200",
@@ -330,13 +347,11 @@ function FlashOutline({ id }: { id: string | null }) {
 }
 
 function Initials({ name }: { name: string }) {
-  const ini = name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-  return <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--pc-comment),transparent_85%)] text-[10px] font-semibold text-[var(--pc-comment)]">{ini}</span>
+  return (
+    <span className="grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: SHARED_TEAL }}>
+      {initialsOf(name)}
+    </span>
+  )
 }
 
 function timeAgo(t: number) {
