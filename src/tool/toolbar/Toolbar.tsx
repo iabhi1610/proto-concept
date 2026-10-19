@@ -1,5 +1,5 @@
 import * as React from "react"
-import { AnimatePresence, motion } from "motion/react"
+import { AnimatePresence, motion, useAnimate } from "motion/react"
 import {
   Check,
   Copy,
@@ -184,15 +184,24 @@ function AgentActions({ show, count, onDelete }: { show: boolean; count: number;
         icon={copied ? <Check /> : <Copy />}
         onClick={() => void copyComments({ quiet: true }).then((ok) => ok && setCopied(true))}
       />
-      <ToolButton danger label={`Delete all comments (${count})`} icon={<Trash2 />} onClick={onDelete} />
+      <span data-pc-delete-all className="contents">
+        <ToolButton danger label={`Delete all comments (${count})`} icon={<Trash2 />} onClick={onDelete} />
+      </span>
     </motion.div>
   )
 }
 
 /** "Delete all" confirmation: a small bar that pops out from the toolbar on the side away from the screen edge. */
-function ConfirmDeleteBar({ count, onConfirm, onCancel }: { count: number; onConfirm: () => void; onCancel: () => void }) {
+function ConfirmDeleteBar({ count, shake, onConfirm, onCancel }: { count: number; shake: number; onConfirm: () => void; onCancel: () => void }) {
   const side = React.useContext(SideContext)
   const ref = React.useRef<HTMLDivElement>(null)
+  // pressing Delete all again while the question is up shakes it instead of closing it
+  const [shakeScope, animate] = useAnimate<HTMLDivElement>()
+  const shakeAtOpen = React.useRef(shake)
+  React.useEffect(() => {
+    if (shake === shakeAtOpen.current || !shakeScope.current) return
+    animate(shakeScope.current, { x: [0, -7, 7, -5, 5, -2, 0] }, { duration: 0.38, ease: "easeOut" })
+  }, [shake, animate, shakeScope])
   // Esc and clicks anywhere else dismiss it (capture, so Esc doesn't also run the toolbar's Esc chain)
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -202,7 +211,9 @@ function ConfirmDeleteBar({ count, onConfirm, onCancel }: { count: number; onCon
       onCancel()
     }
     const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onCancel()
+      const t = e.target as Element
+      if (ref.current?.contains(t) || t.closest?.("[data-pc-delete-all]")) return
+      onCancel()
     }
     window.addEventListener("keydown", onKey, true)
     window.addEventListener("pointerdown", onDown, true)
@@ -222,41 +233,47 @@ function ConfirmDeleteBar({ count, onConfirm, onCancel }: { count: number; onCon
         : side === "right"
           ? { left: `calc(100% + ${GAP}px)`, top: 0 }
           : { right: `calc(100% + ${GAP}px)`, top: 0 }
-  const from = side === "top" ? { y: 6 } : side === "bottom" ? { y: -6 } : side === "right" ? { x: -6 } : { x: 6 }
+  // rises out of the toolbar: starts nudged toward it at 95% and settles at 100%
+  const from = side === "top" ? { y: 12 } : side === "bottom" ? { y: -12 } : side === "right" ? { x: -12 } : { x: 12 }
   return (
     <motion.div
       ref={ref}
       role="alertdialog"
       aria-label="Delete all comments?"
-      initial={{ opacity: 0, scale: 0.96, ...from }}
+      initial={{ opacity: 0, scale: 0.95, ...from }}
       animate={{ opacity: 1, scale: 1, x: (place as { x?: string }).x ?? 0, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96, ...from, transition: { duration: 0.1 } }}
-      transition={{ type: "spring", visualDuration: 0.2, bounce: 0.15 }}
-      style={place}
+      exit={{ opacity: 0, scale: 0.95, ...from, transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } }}
+      transition={{ type: "spring", visualDuration: 0.26, bounce: 0.18, opacity: { duration: 0.14 } }}
+      style={{ ...place, transformOrigin: side === "top" ? "50% 100%" : side === "bottom" ? "50% 0%" : side === "right" ? "0% 50%" : "100% 50%" }}
+      className="absolute z-10"
+    >
+    <div
+      ref={shakeScope}
       className={cn(
-        "absolute z-10 flex h-10 items-center gap-1 whitespace-nowrap rounded-full p-1 pl-4 text-[13px]",
+        "flex h-9 items-center gap-0.5 whitespace-nowrap rounded-full p-1 pl-3.5 text-[12px]",
         "bg-[#1A1A1A] text-white/85 shadow-[0_2px_8px_#00000033,0_4px_16px_#0000001a]",
         "dark:bg-white dark:text-[#1A1A1A]/80 dark:shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_2px_8px_#0000001a,0_4px_16px_#0000000f]",
       )}
     >
-      <span className="mr-2">
-        Delete all {count} comment{count === 1 ? "" : "s"}?
+      <span className="mr-1.5">
+        {count === 1 ? "Delete 1 comment?" : `Delete all ${count} comments?`}
       </span>
       <button
         type="button"
         data-confirm
         onClick={onConfirm}
-        className="h-8 rounded-full bg-[#e5484d] px-3 font-medium text-white outline-none transition-[background-color,transform] duration-150 hover:bg-[#dc3e42] focus-visible:ring-2 focus-visible:ring-[#e5484d]/40 active:scale-[0.96]"
+        className="h-7 rounded-full bg-[#e5484d] px-2.5 font-medium text-white outline-none transition-[background-color,transform] duration-150 hover:bg-[#dc3e42] focus-visible:ring-2 focus-visible:ring-[#e5484d]/40 active:scale-[0.96]"
       >
         Yes, I am sure
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="h-8 rounded-full px-3 font-medium text-white/85 outline-none transition-[background-color,transform] duration-150 hover:bg-white/10 focus-visible:bg-white/10 active:scale-[0.96] dark:text-[#1A1A1A]/80 dark:hover:bg-black/[0.05] dark:focus-visible:bg-black/[0.05]"
+        className="h-7 rounded-full px-2.5 font-medium text-white/85 outline-none transition-[background-color,transform] duration-150 hover:bg-white/10 focus-visible:bg-white/10 active:scale-[0.96] dark:text-[#1A1A1A]/80 dark:hover:bg-black/[0.05] dark:focus-visible:bg-black/[0.05]"
       >
         Not Now
       </button>
+    </div>
     </motion.div>
   )
 }
@@ -300,6 +317,7 @@ export function Toolbar() {
   const sharedOpen = comments.filter((c) => c.source === "viewer" && c.status === "open").length
   const viewers = useShareViewers()
   const [confirmDelete, setConfirmDelete] = React.useState(false)
+  const [shake, setShake] = React.useState(0)
   const cancelDelete = React.useCallback(() => setConfirmDelete(false), [])
 
   const shellRef = React.useRef<HTMLDivElement>(null)
@@ -448,6 +466,7 @@ export function Toolbar() {
           {confirming && (
             <ConfirmDeleteBar
               count={agentComments.length}
+              shake={shake}
               onCancel={cancelDelete}
               onConfirm={() => {
                 deleteAllComments()
@@ -523,7 +542,7 @@ export function Toolbar() {
               onClick={() => toggleMode("comment")}
               badge={<CountBadge n={mode === "comment" ? 0 : open.length} color="#0077E6" />}
             />
-            <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} onDelete={() => setConfirmDelete(true)} />
+            <AgentActions show={mode === "comment" && agentComments.length > 0} count={agentComments.length} onDelete={() => (confirming ? setShake((n) => n + 1) : setConfirmDelete(true))} />
             </AgentGroup>
             <ToolButton
               active={mode === "variants"}
