@@ -92,6 +92,7 @@ export const Clock = octicon(O.ClockIcon)
 export const Clock3 = Clock
 export const Code2 = octicon(O.CodeIcon)
 export const Copy = octicon(O.CopyIcon)
+export const ImageGlyph = octicon(O.ImageIcon)
 export const Download = octicon(O.DownloadIcon)
 export const Ellipsis = octicon(O.KebabHorizontalIcon)
 export const Eye = octicon(O.EyeIcon)

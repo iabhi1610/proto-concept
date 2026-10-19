@@ -1,6 +1,8 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { ArrowLeft, Check, ChevronDown, Copy, Plus, Search, Trash2, Wand2, X } from "@/lib/icons"
+import { ArrowLeft, Check, ChevronDown, Copy, Ellipsis, ImageGlyph, Plus, RefreshCw, Search, Trash2, Wand2, X } from "@/lib/icons"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { screenMeta } from "@/product/screens"
 import { chooseVariant, deleteVariantOption, letterFor } from "../../actions"
@@ -200,96 +202,136 @@ function OptionCard({
     useTool.setState({ promptDraft: `Iterate over ${code}${option === "original" ? "" : ` (${option.name})`}: ` })
   }
 
+  const copyPrompt = async () => {
+    await copyText(variantPrompt(set, option, code))
+    setCopied(true)
+  }
+  const isOriginal = option === "original"
+  // the card itself adds to screen on click, so every control inside keeps its click to itself
+  const own = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    fn()
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 4) * 0.03 }}
       onMouseEnter={() => setPreviewOption({ setId: set.id, optionId: id })}
-      // the whole card is the Add to screen target (its own buttons stop the click)
+      // the whole card is the Add to screen target
       onClick={applied ? undefined : addToScreen}
       className={cn(
         "group/card relative flex w-full flex-col overflow-hidden rounded-[14px] border border-border bg-background text-left",
         !applied && "cursor-pointer",
-        // the one on screen: a plain outline in the variants purple
+        // the one on screen: a purple ring
         applied && "border-[var(--pc-variant)] shadow-[0_0_0_1px_var(--pc-variant)]",
       )}
     >
       <div className="relative border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
-        {/* hover: the preview dims and the main action shows right on it, instantly */}
-        {!applied && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/[0.12] opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+        {/* code tag inside the preview: quiet at rest, solid with a check when it's on screen */}
+        <span
+          className={cn(
+            "absolute left-2 top-2 flex h-5 items-center gap-0.5 rounded-[5px] px-1.5 font-mono text-[11px] font-semibold leading-none",
+            applied
+              ? "bg-[var(--pc-variant)] text-white [&_svg]:size-3"
+              : "bg-white text-[var(--pc-variant)] shadow-[0_0_0_1px_rgb(0_0_0/0.08)]",
+          )}
+        >
+          {applied && <Check />}
+          {code}
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5 px-3 pb-2.5 pt-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[13px] font-semibold leading-[1.5]">{isOriginal ? "Original" : option.name}</span>
+            {!isOriginal && (
+              <button
+                onClick={own(onSources)}
+                className="shrink-0 rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground"
+              >
+                {sourceApps(index).length} sources
+              </button>
+            )}
+          </div>
+          <span className="truncate text-[13px] leading-[1.375] text-muted-foreground">{isOriginal ? "What's in the product today." : option.description}</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {applied ? (
+            <span className="flex h-7 items-center gap-1 px-1 text-[12.5px] font-medium text-[var(--pc-variant)] [&_svg]:size-3.5">
+              <Check /> On screen
+            </span>
+          ) : (
+            // a quiet text button at rest that turns solid while the card is hovered (instantly)
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                addToScreen()
-              }}
-              className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full bg-[#1a1a1a] px-3.5 text-[12.5px] font-medium text-white hover:bg-black active:scale-[0.97] [&_svg]:size-3.5"
+              onClick={own(addToScreen)}
+              className="-ml-1 flex h-7 items-center gap-1 rounded-full px-2 text-[12.5px] font-medium text-[var(--pc-variant)] group-hover/card:bg-[var(--pc-variant)] group-hover/card:px-3 group-hover/card:text-white group-focus-within/card:bg-[var(--pc-variant)] group-focus-within/card:px-3 group-focus-within/card:text-white active:scale-[0.97] [&_svg]:size-3.5"
             >
               <Plus /> Add to screen
             </button>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-2 p-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[13px] font-semibold leading-[1.5]">{option === "original" ? "Original" : option.name}</span>
-              {/* only on hover: opens this card's sources in the panel (Original has none) */}
-              {option !== "original" && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSources()
-                  }}
-                  className="rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground opacity-0 hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground group-hover/card:opacity-100 group-focus-within/card:opacity-100"
-                >
-                  {sourceApps(index).length} sources
-                </button>
-              )}
-            </div>
-            <span className="text-[13px] leading-[1.375] text-muted-foreground">{option === "original" ? "What's in the product today." : option.description}</span>
-          </div>
-        </div>
-        <div className="flex gap-2 border-t border-black/[0.12] pt-2 dark:border-white/[0.12]">
-          {option !== "original" && (
-            <button
-              aria-label="Delete variant"
-              title="Delete variant"
-              onClick={(e) => {
-                e.stopPropagation()
-                deleteVariantOption(set.id, option.id)
-              }}
-              className="-my-0.5 grid size-6 place-items-center rounded-full text-[var(--pc-danger)] hover:bg-[color-mix(in_oklab,var(--pc-danger),transparent_88%)] [&_svg]:size-3.5"
-            >
-              <Trash2 />
-            </button>
           )}
           <span className="flex-1" />
-          <CardPill onClick={iterate}>Iterate over</CardPill>
-          <CardPill
-            onClick={async () => {
-              await copyText(variantPrompt(set, option, code))
-              setCopied(true)
-            }}
-          >
-            {copied ? "Copied" : "Copy Prompt"}
-          </CardPill>
+          <CardIcon label="Iterate over" onClick={own(iterate)}>
+            <RefreshCw />
+          </CardIcon>
+          <CardIcon label={copied ? "Copied" : "Copy prompt"} onClick={own(copyPrompt)}>
+            {copied ? <Check /> : <Copy />}
+          </CardIcon>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="More"
+                onClick={(e) => e.stopPropagation()}
+                className="grid size-7 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground [&_svg]:size-4"
+              >
+                <Ellipsis />
+              </button>
+            </DropdownMenuTrigger>
+            {/* portalled, but React still bubbles its clicks to the card: stop them here */}
+            <DropdownMenuContent align="end" sideOffset={6} className="w-44" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onSelect={iterate}>
+                <RefreshCw /> Iterate over
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void copyPrompt()}>
+                <Copy /> Copy prompt
+              </DropdownMenuItem>
+              {!isOriginal && (
+                <DropdownMenuItem onSelect={onSources}>
+                  <ImageGlyph /> View sources
+                </DropdownMenuItem>
+              )}
+              {!isOriginal && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onSelect={() => deleteVariantOption(set.id, option.id)}>
+                    <Trash2 /> Delete variant
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-      {/* corner tag: solid when this one is on screen */}
-      <span
-        className={cn(
-          "absolute -top-px left-0 min-w-[39px] rounded-br-[4px] rounded-tl-[4px] px-1.5 py-0.5 text-center text-[11px] font-medium leading-[1.2]",
-          applied ? "bg-[var(--pc-variant)] text-white" : "bg-[color-mix(in_oklab,var(--pc-variant),white_86%)] text-[var(--pc-variant)]",
-        )}
-      >
-        {code}
-        {applied && " (On Screen)"}
-      </span>
     </motion.div>
+  )
+}
+
+function CardIcon({ label, onClick, children }: { label: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          aria-label={label}
+          onClick={onClick}
+          className="grid size-7 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3.5"
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -388,20 +430,6 @@ function SourcePlaceholder() {
       </div>
       <span className="absolute bottom-1.5 right-1.5 rounded bg-black/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-black/40">Placeholder</span>
     </div>
-  )
-}
-
-function CardPill({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium leading-[1.5] text-muted-foreground hover:bg-muted hover:text-foreground"
-    >
-      {children}
-    </button>
   )
 }
 
