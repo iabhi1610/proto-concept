@@ -59,7 +59,7 @@ export function SharedCommentsSidebar() {
             transition={{ duration: 0.24, ease: EASE }}
             style={{ width: SIDEBAR_W, willChange: "transform" }}
             className={cn(
-              "pc-inverse fixed z-[50] flex flex-col overflow-hidden bg-popover text-popover-foreground transition-[top,right,bottom,border-radius] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "fixed z-[50] flex flex-col overflow-hidden bg-popover text-popover-foreground transition-[top,right,bottom,border-radius] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
               panelShell(docked),
             )}
           >
