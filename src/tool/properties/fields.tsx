@@ -6,10 +6,10 @@ import { tokensOf, toHex, type Token, type TokenKind } from "./tokens"
 
 /** Field surface shared with the Prompt tab's text box: tinted fill, hairline border, 1.5px focus ring. */
 export const FIELD =
-  "rounded-lg bg-[var(--pc-field)] shadow-[inset_0_0_0_1px_var(--pc-field-border)] transition-shadow duration-150"
+  "pc-field rounded-lg bg-[var(--pc-field)] shadow-[inset_0_0_0_1px_var(--pc-field-border)] transition-shadow duration-150"
 const FIELD_FOCUS = "focus-within:shadow-[inset_0_0_0_1.5px_var(--pc-comment)]"
 /** Segmented track, same as the Prompt / Properties switcher. */
-export const TRACK = "rounded-lg bg-muted p-0.5 outline outline-[0.5px] outline-[var(--pc-track-border)]"
+export const TRACK = "pc-field rounded-lg bg-muted p-0.5 outline outline-[0.5px] outline-[var(--pc-track-border)]"
 
 /* ───────────────────────── token list ───────────────────────── */
 
@@ -478,7 +478,7 @@ export function IconBtn({ label, active, onClick, children }: { label: string; a
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "grid size-7 shrink-0 place-items-center rounded-lg transition-colors [&_svg]:size-3.5",
+        "pc-changed-text grid size-7 shrink-0 place-items-center rounded-lg transition-colors [&_svg]:size-3.5",
         active ? "bg-[var(--pc-pill)] text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
@@ -487,9 +487,61 @@ export function IconBtn({ label, active, onClick, children }: { label: string; a
   )
 }
 
+/** Multi-line text box that grows with its content. Enter commits, Shift+Enter breaks the line, Escape cancels. */
+export function TextAreaField({
+  value,
+  onChange,
+  onFocus,
+  onCommit,
+  onCancel,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onFocus?: () => void
+  onCommit: () => void
+  onCancel: () => void
+  placeholder?: string
+}) {
+  const ref = React.useRef<HTMLTextAreaElement>(null)
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+  return (
+    <div className={cn(FIELD, FIELD_FOCUS, "flex")}>
+      <textarea
+        ref={ref}
+        rows={1}
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        onFocus={onFocus}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            onCommit()
+            e.currentTarget.blur()
+          } else if (e.key === "Escape") {
+            e.preventDefault()
+            e.stopPropagation()
+            onCancel()
+            e.currentTarget.blur()
+          }
+        }}
+        className="max-h-40 min-h-8 w-full resize-none bg-transparent px-2.5 py-[7px] text-[12px] leading-[18px] text-foreground outline-none placeholder:text-muted-foreground"
+      />
+    </div>
+  )
+}
+
 export function CheckRow({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
-    <label className="flex h-6 w-fit cursor-pointer select-none items-center gap-2 text-[12px] text-foreground/85">
+    <label className="pc-changed-text flex h-6 w-fit cursor-pointer select-none items-center gap-2 text-[12px] text-foreground/85">
       <span
         className={cn(
           "grid size-4 place-items-center rounded-[5px] transition-colors",
@@ -545,11 +597,23 @@ export function AlignGrid({ x, y, onChange }: { x: Axis | null; y: Axis | null; 
 
 /* ───────────────────────── sections ───────────────────────── */
 
-export function Section({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
+/** Marks the fields inside as changed from the original: tinted, outlined surfaces (styled in index.css). */
+export function Changed({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return (
+    <div data-pc-changed={on || undefined} className="contents">
+      {children}
+    </div>
+  )
+}
+
+export function Section({ title, children, right, changed }: { title: string; children: React.ReactNode; right?: React.ReactNode; changed?: boolean }) {
   return (
     <div className="flex flex-col gap-2 border-t border-border px-3 pb-3 pt-2 first:border-t-0">
       <div className="flex h-7 items-center justify-between">
-        <span className="text-[12px] font-medium text-foreground">{title}</span>
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+          {title}
+          {changed && <span aria-label="Changed" className="size-1.5 rounded-full bg-[var(--pc-comment)]" />}
+        </span>
         <div className="-mr-1 flex items-center">{right}</div>
       </div>
       {children}
@@ -558,13 +622,17 @@ export function Section({ title, children, right }: { title: string; children: R
 }
 
 /** An empty section (no fill, no border…) collapsed to its title with a "+" to add it. */
-export function AddRow({ title, onAdd }: { title: string; onAdd: () => void }) {
+export function AddRow({ title, onAdd, changed }: { title: string; onAdd: () => void; changed?: boolean }) {
   return (
     <button
       onClick={onAdd}
       className="group/add flex h-10 w-full items-center justify-between border-t border-border px-3 text-[12px] text-muted-foreground transition-colors first:border-t-0 hover:text-foreground"
     >
-      {title}
+      <span className="flex items-center gap-1.5">
+        {title}
+        {/* e.g. a fill that was removed: the section is empty, but the element still differs from the original */}
+        {changed && <span aria-label="Changed" className="size-1.5 rounded-full bg-[var(--pc-comment)]" />}
+      </span>
       <span className="-mr-1 grid size-7 place-items-center rounded-lg transition-colors group-hover/add:bg-muted [&_svg]:size-3.5">
         <Plus />
       </span>

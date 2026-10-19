@@ -6,8 +6,8 @@ import { useTool } from "../store"
 import { DashedOutline } from "./DashedOutline"
 import { useLiveBoxes, type Box } from "./geometry"
 
-const COMMENT = "var(--pc-comment)"
-const VARIANT = "var(--pc-variant)"
+// variants mode selects with the comment blue too; only the variant frames/pins stay purple
+const color = "var(--pc-comment)"
 
 function Label({ box, text, color }: { box: Box; text: string; color: string }) {
   const above = box.y > 26
@@ -26,7 +26,6 @@ export function Highlights({ marquee }: { marquee: Box | null }) {
   const hoverId = useTool((s) => s.hoverId)
   const selection = useTool((s) => s.selection)
   const active = mode === "comment" || mode === "variants"
-  const color = mode === "variants" ? VARIANT : COMMENT
   const ids = React.useMemo(() => (active ? [...new Set([...(hoverId ? [hoverId] : []), ...selection])] : []), [active, hoverId, selection])
   const boxes = useLiveBoxes(ids)
   const hoverBox = hoverId ? boxes[hoverId] : null

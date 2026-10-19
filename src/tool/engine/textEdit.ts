@@ -20,6 +20,11 @@ export function readText(el: HTMLElement) {
   return (textNodeOf(el)?.data ?? el.textContent ?? "").trim()
 }
 
+/** Whether the element holds copy of its own (not just text inside its children), so it can be rewritten safely. */
+export function hasOwnText(el: HTMLElement) {
+  return !!textNodeOf(el)
+}
+
 function writeText(el: HTMLElement, text: string) {
   const node = textNodeOf(el)
   if (node) {
@@ -38,7 +43,7 @@ export function applyTextOverrides(ops: EditOp[]) {
   const want = new Map<string, string>()
   for (const o of ops) if (o.props.$text !== undefined) want.set(o.elId, o.props.$text)
   for (const el of root.querySelectorAll<HTMLElement>(`[${ORIG}]`)) {
-    if (el === editing) continue
+    if (el === editing || el === previewing) continue
     if (!want.has(el.dataset.pcId ?? "")) {
       writeText(el, el.getAttribute(ORIG)!)
       el.removeAttribute(ORIG)
@@ -46,7 +51,7 @@ export function applyTextOverrides(ops: EditOp[]) {
   }
   for (const [id, text] of want) {
     const el = findEl(id)
-    if (!el || el === editing) continue
+    if (!el || el === editing || el === previewing) continue
     if (!el.hasAttribute(ORIG)) el.setAttribute(ORIG, readText(el))
     writeText(el, text)
   }
@@ -70,9 +75,14 @@ export function textHostAt(x: number, y: number): HTMLElement | null {
 
 /**
  * Makes `host` editable in place with its text selected. Enter or clicking away commits,
- * Escape cancels. `onCommit` receives the new text only when it changed.
+ * Escape cancels. `onCommit` receives the new text only when it changed; `onInput` gets every
+ * keystroke and `onEnd` runs once the session closes either way.
  */
-export function startTextEdit(host: HTMLElement, onCommit: (text: string) => void) {
+export function startTextEdit(
+  host: HTMLElement,
+  onCommit: (text: string) => void,
+  { onInput, onEnd }: { onInput?: (text: string) => void; onEnd?: () => void } = {},
+) {
   finish?.(true)
   const before = readText(host)
   const locked = [...host.children].filter((c): c is HTMLElement => c instanceof HTMLElement || c instanceof SVGElement) as HTMLElement[]
@@ -104,10 +114,12 @@ export function startTextEdit(host: HTMLElement, onCommit: (text: string) => voi
     }
   }
   const onBlur = () => done(true)
+  const onType = () => onInput?.(readText(host))
   const done = (commit: boolean) => {
     if (editing !== host) return
     host.removeEventListener("keydown", onKey, true)
     host.removeEventListener("blur", onBlur)
+    host.removeEventListener("input", onType)
     host.removeAttribute("contenteditable")
     host.removeAttribute("data-pc-editing")
     locked.forEach((c) => c.removeAttribute("contenteditable"))
@@ -115,18 +127,34 @@ export function startTextEdit(host: HTMLElement, onCommit: (text: string) => voi
     const after = readText(host)
     editing = null
     finish = null
-    if (!commit) {
-      writeText(host, before)
-      return
-    }
-    if (after && after !== before) {
+    if (commit && after && after !== before) {
       if (!host.hasAttribute(ORIG)) host.setAttribute(ORIG, before)
       onCommit(after)
     } else writeText(host, before)
+    onEnd?.()
   }
   host.addEventListener("keydown", onKey, true)
   host.addEventListener("blur", onBlur)
+  host.addEventListener("input", onType)
   finish = done
+}
+
+/* ───────────────────────── Properties text field ───────────────────────── */
+
+/** Element whose copy the Properties field is rewriting live; overrides leave it alone until it commits. */
+let previewing: HTMLElement | null = null
+
+/** Writes copy straight into the page while the field is being typed in (outside history until committed). */
+export function previewText(el: HTMLElement, text: string) {
+  if (!el.hasAttribute(ORIG)) el.setAttribute(ORIG, readText(el))
+  previewing = el
+  writeText(el, text)
+}
+
+/** Closes a field session: puts `restore` back (cancel / no change) and hands the element back to the overrides. */
+export function endPreview(el: HTMLElement, restore?: string) {
+  if (restore !== undefined) writeText(el, restore)
+  if (previewing === el) previewing = null
 }
 
 /** Ends an in-progress edit (e.g. when the user clicks elsewhere). */

@@ -173,6 +173,8 @@ export function VariantPins() {
         if (!b) return null
         const active = activeSetId === set.id
         const hovered = hoverId === set.elId
+        // with one set open, the other frames recede (they reappear on hover; pins stay clickable)
+        if (activeSetId && !active && !hovered) return null
         return (
           <div
             key={`frame-${set.id}`}
