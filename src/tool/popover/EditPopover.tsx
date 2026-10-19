@@ -293,7 +293,7 @@ function PopoverBody() {
     clearSelection()
   }
 
-  // Delete removes this element's comment (or every comment and edit on it) and reverts the changes
+  // Remove comment removes this element's comment (or every comment and edit on it) and reverts the changes
   const deletable = !variantsMode && (!!active || related.length > 0 || ops.some((o) => selection.includes(o.elId)))
   const remove = () => {
     const ids = new Set(active ? [active.id] : related.map((c) => c.id))
@@ -444,7 +444,7 @@ function PopoverBody() {
                     onClick={remove}
                     className="h-6 rounded-full bg-[color-mix(in_oklab,var(--pc-danger),transparent_86%)] px-3 text-[12px] font-medium text-[var(--pc-danger)] transition-[background-color,transform] duration-150 hover:bg-[color-mix(in_oklab,var(--pc-danger),transparent_78%)] active:scale-[0.97]"
                   >
-                    Delete
+                    Remove comment
                   </button>
                 )}
                 <button
@@ -461,7 +461,7 @@ function PopoverBody() {
                     intent || variantsMode ? "bg-[var(--pc-variant)]" : "bg-[var(--pc-comment)]",
                   )}
                 >
-                  {variantsMode ? (copiedPrompt ? "Copied" : "Copy Prompt") : intent ? "Create" : active ? "Save" : "Add"}
+                  {variantsMode ? (copiedPrompt ? "Copied" : "Copy Prompt") : intent ? "Create" : "Add"}
                 </button>
               </div>
             </div>
