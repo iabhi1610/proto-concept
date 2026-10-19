@@ -615,10 +615,6 @@ export function Toolbar() {
                   <PenTool /> Send to Paper / Figma
                   <DropdownMenuShortcut className={menuKbd}>P</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuItem className={menuItem} onClick={() => copyComments()}>
-                  <Copy /> Copy comments
-                  <DropdownMenuShortcut className={menuKbd}>C</DropdownMenuShortcut>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-white/10 dark:bg-black/[0.08]" />
                 <DropdownMenuItem className={menuItem} onClick={toggleTheme}>
                   {theme === "light" ? <Moon /> : <Sun />}
