@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { letterFor } from "../actions"
 import { useTool } from "../store"
 import type { Comment } from "../types"
+import { DashedOutline } from "./DashedOutline"
 import { useLiveBoxes } from "./geometry"
 
 const spring = { type: "spring", stiffness: 520, damping: 28 } as const
@@ -121,10 +122,11 @@ export function VariantPins() {
               top: b.y - 3,
               width: b.w + 6,
               height: b.h + 6,
-              outline: `${active ? 2 : 1.5}px ${active || hovered ? "solid" : "dashed"} var(--pc-variant)`,
               background: `color-mix(in oklab, var(--pc-variant), transparent ${active ? 92 : hovered ? 93 : 96}%)`,
             }}
-          />
+          >
+            <DashedOutline color="var(--pc-variant)" width={active ? 2 : 1.5} radius={6} solid={active || hovered} />
+          </div>
         )
       })}
       <AnimatePresence>

@@ -33,39 +33,36 @@ const menuItem =
 const menuKbd = "text-white/35 group-focus/dropdown-menu-item:text-white/45! dark:text-[#8a8c92] dark:group-focus/dropdown-menu-item:text-[#8a8c92]!"
 /** open / close spring for the toolbar row (tuned earlier with DialKit) */
 const COLLAPSE = { type: "spring", visualDuration: 0.22, bounce: 0.1 } as const
-const CHROME_KEY = "pc-toolbar-chrome"
 const CHIP = 46
 const PAD = 8
+/** a chip this close to the left / right edge opens as a vertical stack */
+const EDGE = 80
 
 /** Position of the logo chip. The bar grows away from it toward whichever side has room. */
 type Pos = { x: number; y: number }
-type Dir = "right" | "left"
+type Dir = "right" | "left" | "down" | "up"
 
-/** Opens toward the side with room for the tools; prefers right when both fit. */
-function pickDir(p: Pos, rowW: number): Dir {
+/** Opens toward the side with room for the tools; prefers right (or down, at a side edge) when both fit. */
+function pickDir(p: Pos, len: number): Dir {
   const spaceRight = window.innerWidth - (p.x + CHIP) - PAD
   const spaceLeft = p.x - PAD
-  if (spaceRight >= rowW) return "right"
-  if (spaceLeft >= rowW) return "left"
+  if (spaceLeft < EDGE || spaceRight < EDGE) {
+    const spaceDown = window.innerHeight - (p.y + CHIP) - PAD
+    const spaceUp = p.y - PAD
+    if (spaceDown >= len) return "down"
+    if (spaceUp >= len) return "up"
+    return spaceDown >= spaceUp ? "down" : "up"
+  }
+  if (spaceRight >= len) return "right"
+  if (spaceLeft >= len) return "left"
   return spaceRight >= spaceLeft ? "right" : "left"
 }
 
-/** Near the top of the screen, menus and tooltips open downward instead. */
-const SideContext = React.createContext<"top" | "bottom">("top")
+/** Menus and tooltips open away from the screen edge the toolbar sits against. */
+type Side = "top" | "bottom" | "left" | "right"
+const SideContext = React.createContext<Side>("top")
+const VerticalContext = React.createContext(false)
 
-function readChrome(): { collapsed: boolean; pos: Pos } | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem(CHROME_KEY)
-    if (!raw) return null
-    const v = JSON.parse(raw) as { collapsed?: unknown; x?: unknown; y?: unknown }
-    if (typeof v.collapsed !== "boolean" || typeof v.x !== "number" || typeof v.y !== "number") return null
-    if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) return null
-    return { collapsed: v.collapsed, pos: { x: v.x, y: v.y } }
-  } catch {
-    return null
-  }
-}
 
 function clampPos(pos: Pos, w: number, h = CHIP): Pos {
   const maxX = Math.max(PAD, window.innerWidth - w - PAD)
@@ -87,7 +84,13 @@ function Kbd({ children }: { children: React.ReactNode }) {
 }
 
 function Divider() {
-  return <span aria-hidden className="mx-[3px] h-3 w-px shrink-0 bg-white/15 dark:bg-black/10" />
+  const vertical = React.useContext(VerticalContext)
+  return (
+    <span
+      aria-hidden
+      className={cn("shrink-0 bg-white/15 dark:bg-black/10", vertical ? "my-[3px] h-px w-3" : "mx-[3px] h-3 w-px")}
+    />
+  )
 }
 
 function CountBadge({ n, color }: { n: number; color: string }) {
@@ -172,49 +175,37 @@ export function Toolbar() {
   const sharedOpen = comments.filter((c) => c.source === "viewer" && c.status === "open").length
   const viewers = useShareViewers()
 
-  const saved = React.useMemo(() => readChrome(), [])
   const shellRef = React.useRef<HTMLDivElement>(null)
   const dragDist = React.useRef(0)
   const dragOrigin = React.useRef<{ px: number; py: number; x: number; y: number } | null>(null)
   const posRef = React.useRef<Pos | null>(null)
   const collapsedRef = React.useRef(false)
   const rowRef = React.useRef<HTMLDivElement>(null)
+  // length of the tool row along the bar's axis (the same whether it lays out across or down)
   const [rowW, setRowW] = React.useState(0)
-  React.useLayoutEffect(() => {
-    const el = rowRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => setRowW(el.scrollWidth))
-    ro.observe(el)
-    setRowW(el.scrollWidth)
-    return () => ro.disconnect()
-  }, [])
+  const verticalRef = React.useRef(false)
+  const measureRow = React.useCallback((el: HTMLElement) => (verticalRef.current ? el.scrollHeight : el.scrollWidth), [])
+  // the first paint shows the bar as-is; later remounts animate open
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
   const collapsed = useTool((s) => s.toolbarCollapsed)
   const setCollapsed = React.useCallback((v: boolean | ((c: boolean) => boolean)) => {
     const st = useTool.getState()
     st.setToolbarCollapsed(typeof v === "function" ? v(st.toolbarCollapsed) : v)
   }, [])
-  // restore the last session's collapsed state once
-  React.useEffect(() => {
-    if (saved?.collapsed) useTool.getState().setToolbarCollapsed(true)
-  }, [saved])
-  const [pos, setPos] = React.useState<Pos | null>(saved ? clampPos(saved.pos, CHIP) : null)
-  const [dir, setDir] = React.useState<Dir>(() => (saved ? pickDir(clampPos(saved.pos, CHIP), 300) : "right"))
+  // every session starts docked at the bottom center; a position exists only once the bar is collapsed and dragged
+  const [pos, setPos] = React.useState<Pos | null>(null)
+  const [dir, setDir] = React.useState<Dir>("right")
   const logoRef = React.useRef<HTMLButtonElement>(null)
   posRef.current = pos
   collapsedRef.current = collapsed
-
-
-  React.useEffect(() => {
-    if (!pos) return
-    localStorage.setItem(CHROME_KEY, JSON.stringify({ collapsed, x: pos.x, y: pos.y }))
-  }, [collapsed, pos])
 
   React.useEffect(() => {
     const onResize = () => {
       setPos((p) => {
         if (!p) return p
         const next = clampPos(p, CHIP)
-        if (!collapsedRef.current) setDir(pickDir(next, rowRef.current?.scrollWidth ?? 300))
+        if (!collapsedRef.current) setDir(pickDir(next, rowRef.current ? measureRow(rowRef.current) : 300))
         return next
       })
     }
@@ -240,7 +231,7 @@ export function Toolbar() {
       window.removeEventListener("pointerup", onUp)
       window.removeEventListener("pointercancel", onUp)
     }
-  }, [collapsed])
+  }, [collapsed, measureRow])
 
   const beginDrag = React.useCallback((e: React.PointerEvent | PointerEvent) => {
     const current = posRef.current
@@ -285,23 +276,40 @@ export function Toolbar() {
     } else if (posRef.current) setDir(pickDir(posRef.current, rowW))
   }, [collapsed, pinFromDom, rowW])
 
-  const openLeft = !!pos && dir === "left"
-  const side = pos && pos.y < 180 ? "bottom" : "top"
+  const openDir: Dir = pos ? dir : "right"
+  const vertical = openDir === "down" || openDir === "up"
+  verticalRef.current = vertical
+  const axis = vertical ? "height" : "width"
+  // the row remounts when the bar changes orientation, so the observer re-attaches with it
+  React.useLayoutEffect(() => {
+    const el = rowRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setRowW(measureRow(el)))
+    ro.observe(el)
+    setRowW(measureRow(el))
+    return () => ro.disconnect()
+  }, [measureRow, vertical])
+  // left and up grow away from the logo, so the logo sits at the end of the shell and the row's divider trails
+  const reversed = openDir === "left" || openDir === "up"
+  const side: Side = pos && vertical ? (pos.x + CHIP / 2 < window.innerWidth / 2 ? "right" : "left") : pos && pos.y < 180 ? "bottom" : "top"
   const anchor: React.CSSProperties | undefined = pos
-    ? openLeft
+    ? openDir === "left"
       ? { right: window.innerWidth - pos.x - CHIP, top: pos.y }
-      : { left: pos.x, top: pos.y }
+      : openDir === "up"
+        ? { left: pos.x, bottom: window.innerHeight - pos.y - CHIP }
+        : { left: pos.x, top: pos.y }
     : undefined
 
   return (
     <SideContext.Provider value={side}>
+    <VerticalContext.Provider value={vertical}>
     <div
       data-pc-toolbar
-      data-open-dir={openLeft ? "left" : "right"}
+      data-open-dir={openDir}
       className={cn("fixed z-[60]", pos ? undefined : "bottom-5 left-1/2 -translate-x-1/2")}
       style={anchor}
     >
-      <motion.div initial={saved ? false : { y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.15 }}>
+      <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...spring, delay: 0.15 }}>
         <div
           ref={shellRef}
           data-pc-tool
@@ -310,8 +318,8 @@ export function Toolbar() {
         >
       <div
         className={cn(
-          "relative flex h-[46px] items-center rounded-[23px]",
-          openLeft && "flex-row-reverse",
+          "relative flex items-center rounded-[23px]",
+          vertical ? (reversed ? "w-[46px] flex-col-reverse" : "w-[46px] flex-col") : reversed ? "h-[46px] flex-row-reverse" : "h-[46px]",
           " bg-[#1A1A1A] p-[5px] text-white shadow-[0_2px_8px_#00000033,0_4px_16px_#0000001a]",
           "dark:bg-white dark:text-[#1A1A1A] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.06),0_2px_8px_#0000001a,0_4px_16px_#0000000f]",
           collapsed ? "overflow-hidden" : "overflow-visible",
@@ -329,24 +337,32 @@ export function Toolbar() {
         </button>
 
         <motion.div
-          initial={false}
+          // remounts when the bar turns between a row and a column, so the newly animated axis grows
+          // from 0 instead of from the size the content already has in its new layout
+          key={vertical ? "column" : "row"}
+          initial={mounted ? { [axis]: 0, opacity: 0 } : false}
           animate={{
-            width: collapsed ? 0 : rowW || "auto",
+            [axis]: collapsed ? 0 : rowW || "auto",
             opacity: collapsed ? 0 : 1,
           }}
           transition={{
-            width: COLLAPSE,
+            [axis]: COLLAPSE,
             opacity: { duration: collapsed ? 0.08 : 0.16, delay: collapsed ? 0 : 0.02 },
           }}
-          className={cn("min-w-0", collapsed ? "overflow-hidden" : "overflow-visible")}
-          style={{ willChange: "width, opacity" }}
+          className={cn("min-h-0 min-w-0", collapsed ? "overflow-hidden" : "overflow-visible")}
+          style={{ willChange: vertical ? "height, opacity" : "width, opacity" }}
         >
           <div
             ref={rowRef}
             inert={collapsed}
-            className={cn("flex w-max items-center gap-1.5", openLeft ? "pr-1.5" : "pl-1.5", collapsed ? "pointer-events-none" : undefined)}
+            className={cn(
+              "flex items-center gap-1.5",
+              vertical ? "h-max flex-col" : "w-max",
+              vertical ? (reversed ? "pb-1.5" : "pt-1.5") : reversed ? "pr-1.5" : "pl-1.5",
+              collapsed ? "pointer-events-none" : undefined,
+            )}
           >
-            {!openLeft && <Divider />}
+            {!reversed && <Divider />}
 
             <ToolButton
               active={mode === "comment"}
@@ -387,7 +403,7 @@ export function Toolbar() {
                   sharedOpen > 0 ? (
                     <CountBadge n={commentsOpen ? 0 : sharedOpen} color="#0077E6" />
                   ) : viewers > 0 ? (
-                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#f0c14b] outline outline-2 outline-[#1A1A1A] dark:outline-white" />
+                    <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-500 outline outline-2 outline-[#1A1A1A] dark:outline-white" />
                   ) : undefined
                 }
               />
@@ -409,7 +425,7 @@ export function Toolbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side={side}
-                align={openLeft ? "start" : "end"}
+                align={reversed ? "start" : "end"}
                 sideOffset={12}
                 className={cn(
                   "z-[70] w-56 border-white/10 bg-[#16171a] text-white shadow-[0_16px_40px_-12px_rgb(0_0_0/0.55)]",
@@ -456,13 +472,14 @@ export function Toolbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {openLeft && <Divider />}
+            {reversed && <Divider />}
           </div>
         </motion.div>
       </div>
         </div>
       </motion.div>
     </div>
+    </VerticalContext.Provider>
     </SideContext.Provider>
   )
 }

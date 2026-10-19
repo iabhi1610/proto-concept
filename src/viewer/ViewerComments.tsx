@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { elInfo, findEl, inspectableFrom, productRoot } from "@/tool/engine/dom"
+import { DashedOutline } from "@/tool/overlay/DashedOutline"
 import { useLiveBox, useLiveBoxes } from "@/tool/overlay/geometry"
 import { postComment } from "@/tool/share/client"
 import { uid, useTool } from "@/tool/store"
@@ -97,7 +98,9 @@ export function ViewerComments() {
       {/* hover outline */}
       {commenting && hoverBox && hoverEl && (
         <div className="pointer-events-none fixed z-30" style={{ left: hoverBox.x, top: hoverBox.y, width: hoverBox.w, height: hoverBox.h }}>
-          <div className="absolute inset-0 rounded-[3px] border border-dashed" style={{ borderColor: BLUE, background: "rgb(59 130 246 / 0.04)" }} />
+          <div className="absolute inset-0 rounded-[3px]" style={{ background: "rgb(59 130 246 / 0.04)" }}>
+            <DashedOutline color={BLUE} width={1} inside />
+          </div>
           <span
             className="absolute -top-[22px] left-0 whitespace-nowrap rounded-[5px] px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm"
             style={{ background: BLUE }}

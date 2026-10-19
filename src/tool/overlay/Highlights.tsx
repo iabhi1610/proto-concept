@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { cn } from "@/lib/utils"
 import { elInfo, findEl } from "../engine/dom"
 import { useTool } from "../store"
+import { DashedOutline } from "./DashedOutline"
 import { useLiveBoxes, type Box } from "./geometry"
 
 const COMMENT = "var(--pc-comment)"
@@ -56,10 +57,11 @@ export function Highlights({ marquee }: { marquee: Box | null }) {
               top: hoverBox.y - 2,
               width: hoverBox.w + 4,
               height: hoverBox.h + 4,
-              outline: `1.5px dashed ${color}`,
               background: `color-mix(in oklab, ${color}, transparent 94%)`,
             }}
-          />
+          >
+            <DashedOutline color={color} />
+          </div>
           <Label box={{ ...hoverBox, x: hoverBox.x - 2, y: hoverBox.y - 2 }} text={elInfo(hoverEl).name} color={color} />
         </>
       )}
