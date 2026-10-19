@@ -228,7 +228,7 @@ function OptionCard({
         applied && "border-[var(--pc-variant)] shadow-[0_0_0_1px_var(--pc-variant)]",
       )}
     >
-      <div className="relative border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
+      <div className="relative shrink-0 border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
         {/* code tag inside the preview: quiet at rest, solid with a check when it's on screen */}
         <span

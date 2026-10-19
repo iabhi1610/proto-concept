@@ -55,22 +55,31 @@ export function VariantPreview({ set, option, maxHeight = 150 }: { set: VariantS
     if (!o || !i) return
     const fit = () => {
       const avail = o.clientWidth - 24
-      const ih = i.scrollHeight
-      const s = Math.min(1, avail / naturalW, (maxHeight - 24) / Math.max(ih, 1))
+      // offsetHeight ignores the scale transform; skip readings taken before the preview has laid
+      // out (hidden panel, fonts loading, a hot reload), or the card locks to a sliver
+      const ih = i.offsetHeight
+      if (avail <= 0 || ih < 4) return
+      const s = Math.min(1, avail / naturalW, (maxHeight - 24) / ih)
       setScale(s)
       const next = Math.min(maxHeight, ih * s + 24)
       setH(next)
       previewHeights.set(`${set.id}:${optionId}`, next)
     }
     fit()
+    // measure again once layout and fonts have settled
+    const raf = requestAnimationFrame(fit)
+    void document.fonts?.ready.then(fit)
     const ro = new ResizeObserver(fit)
     ro.observe(i)
     ro.observe(o)
-    return () => ro.disconnect()
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
   }, [naturalW, maxHeight, optionId, set.id])
 
   return (
-    <div ref={outer} className="relative w-full overflow-hidden" style={{ height: h }}>
+    <div ref={outer} className="relative w-full shrink-0 overflow-hidden" style={{ height: h }}>
       <div
         className="orbit-app absolute left-1/2 top-3 origin-top !bg-transparent"
         style={{ width: naturalW, transform: `translateX(-50%) scale(${scale})`, pointerEvents: "none" }}
