@@ -245,11 +245,6 @@ function OptionCard({
             </div>
             <span className="text-[13px] leading-[1.375] text-muted-foreground">{option === "original" ? "What's in the product today." : option.description}</span>
           </div>
-          {applied && (
-            <span className="flex shrink-0 items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-[var(--pc-variant)]">
-              <Check className="size-3" /> On screen
-            </span>
-          )}
         </div>
         <div className="flex gap-2 border-t border-black/[0.12] pt-2 dark:border-white/[0.12]">
           {option !== "original" && (
@@ -285,6 +280,7 @@ function OptionCard({
         )}
       >
         {code}
+        {applied && " (On Screen)"}
       </span>
     </motion.div>
   )
