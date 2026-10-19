@@ -244,14 +244,6 @@ function OptionCard({
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[13px] font-semibold leading-[1.5]">{isOriginal ? "Original" : option.name}</span>
-            {!isOriginal && (
-              <button
-                onClick={own(onSources)}
-                className="shrink-0 rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground"
-              >
-                {sourceApps(index).length} sources
-              </button>
-            )}
           </div>
           <span className="truncate text-[13px] leading-[1.375] text-muted-foreground">{isOriginal ? "What's in the product today." : option.description}</span>
         </div>
