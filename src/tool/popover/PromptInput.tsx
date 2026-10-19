@@ -1,13 +1,11 @@
 import * as React from "react"
-import { AnimatePresence, motion } from "motion/react"
-import { Sparkles } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import type { VariantIntent } from "../engine/intent"
 import { useTool } from "../store"
 
 /**
- * Plain prompt box. Variant requests ("create 3 variants…") get an iMessage-style inline
- * highlight, rendered by a mirror layer behind a transparent textarea.
+ * Plain prompt box. Variant requests ("create 3 variants…") get an inline tag on the request
+ * ("3 variants"), painted by a mirror layer behind the textarea.
  */
 export function PromptInput({
   value,
@@ -41,12 +39,16 @@ export function PromptInput({
         <div
           ref={mirror}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words p-2 text-[12px] leading-[15px] text-transparent"
+          className={cn(
+            "pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words p-2 text-[12px] leading-[15px]",
+            intent ? "text-foreground" : "text-transparent",
+          )}
         >
           {intent ? (
             <>
               {value.slice(0, intent.start)}
-              <mark className="rounded-[5px] bg-[color-mix(in_oklab,var(--pc-variant),transparent_80%)] text-transparent shadow-[0_0_0_2px_color-mix(in_oklab,var(--pc-variant),transparent_80%)]">
+              {/* tag: tinted purple with text that keeps ≥ 6:1 contrast on both popover themes */}
+              <mark className="rounded-[4px] bg-[#e7e5fe] text-[#4b3fd6] shadow-[0_0_0_2px_#e7e5fe] dark:bg-[#3b3670] dark:text-[#d4d0ff] dark:shadow-[0_0_0_2px_#3b3670]">
                 {value.slice(intent.start, intent.end)}
               </mark>
               {value.slice(intent.end)}
@@ -73,29 +75,12 @@ export function PromptInput({
           placeholder={placeholder}
           className={cn(
             "relative block h-[84px] w-full resize-none bg-transparent p-2 text-[12px] leading-[15px] text-foreground outline-none placeholder:text-[var(--pc-placeholder)]",
-            intent && "caret-[var(--pc-variant)]",
+            // while a tag shows, the mirror paints the text and the textarea only keeps the caret
+            intent && "text-transparent caret-foreground",
           )}
         />
       </div>
 
-      <AnimatePresence initial={false}>
-        {intent && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            onClick={onSubmit}
-            className="flex items-center gap-2 overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--pc-variant),transparent_92%)] px-2.5 py-1.5 text-left text-[12px] text-foreground"
-          >
-            <Sparkles className="size-3.5 text-[var(--pc-variant)]" />
-            <span className="flex-1">
-              Create <b className="font-semibold">{intent.count} variant{intent.count > 1 ? "s" : ""}</b> of {componentName}
-            </span>
-          </motion.button>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

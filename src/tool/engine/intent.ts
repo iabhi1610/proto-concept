@@ -16,6 +16,12 @@ const RE = new RegExp(
 const COUNTED = new RegExp(String.raw`\b${COUNT}\s+(?:\w+\s+)?${NOUN}\b`, "i")
 const SHORT = /\b(?:variants?|variations?|iterations?|alternatives?)\s+(?:of|for)\b/i
 
+/** verbs and filler that lead a request: "create me some", "give us a few" */
+const LEAD = new RegExp(
+  String.raw`^(?:(?:create|make|generate|give|show|explore|try|design|draft|spin up|come up with|suggest|need|want|me|us|a|an|the|some|more|different|new|other|quick)\s+)+`,
+  "i",
+)
+
 export interface VariantIntent {
   start: number
   end: number
@@ -35,5 +41,7 @@ export function detectVariantIntent(text: string): VariantIntent | null {
   let count = range ? Math.max(toNum(range[1]), toNum(range[2])) : single ? toNum(single[1]) : 3
   if (!count) count = 3
   count = Math.max(1, Math.min(6, count))
-  return { start: m.index, end: m.index + phrase.length, count, phrase }
+  // the tag covers what's being asked for ("4 variants"), not the verb or filler in front of it
+  const lead = phrase.match(LEAD)?.[0].length ?? 0
+  return { start: m.index + lead, end: m.index + phrase.length, count, phrase: phrase.slice(lead) }
 }
