@@ -111,7 +111,10 @@
   --pc-dim: #5f6167;
   --pc-track-border: rgb(0 0 0 / 0.08);
   --pc-footer: rgb(0 0 0 / 0.03);
-  --pc-danger: #e5484d;
+  --pc-danger: #ce2c31;
+  /* red text is #ce2c31 on light surfaces and #ff9592 on dark ones (both ≥ 5:1); solid red buttons
+     always use #ce2c31 under white text (5:1) */
+  --pc-danger-solid: #ce2c31;
   /* v2 bottom bar height and where floating panels stop (set by the editor per version) */
   --pc-bar: 0px;
   --pc-float-bottom: 76px;
@@ -129,7 +132,7 @@
   --muted-foreground: oklch(0.52 0.008 270);
   --accent: oklch(0.955 0.003 270);
   --accent-foreground: oklch(0.2 0.006 270);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: #ce2c31;
   --border: oklch(0.915 0.003 270);
   --input: oklch(0.915 0.003 270);
   --ring: oklch(0.62 0.17 255);
@@ -149,7 +152,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   --pc-comment: #0088FF;
-  --pc-variant: #8b5cf6;
+  --pc-variant: #6155f5; /* the toolbar's Variants purple */
   --pc-warn: #f59e0b;
   --pc-glass: oklch(1 0 0 / 0.86);
   --pc-canvas: oklch(0.955 0.003 270);
@@ -166,7 +169,7 @@
   --pc-dim: rgb(255 255 255 / 0.62);
   --pc-track-border: rgb(255 255 255 / 0.14);
   --pc-footer: rgb(255 255 255 / 0.06);
-  --pc-danger: #ff6166;
+  --pc-danger: #ff9592;
   --background: oklch(0.17 0.004 270);
   --foreground: oklch(0.97 0.002 270);
   --card: oklch(0.2 0.004 270);
@@ -181,7 +184,7 @@
   --muted-foreground: oklch(0.68 0.008 270);
   --accent: oklch(0.27 0.005 270);
   --accent-foreground: oklch(0.97 0.002 270);
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: #ff9592;
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.66 0.16 255);
@@ -227,7 +230,8 @@
   --pc-track-border: rgb(255 255 255 / 0.16);
   --pc-footer: rgb(255 255 255 / 0.12);
   --pc-comment: #0088ff;
-  --pc-danger: #ff6166;
+  --pc-danger: #ff9592;
+  --destructive: #ff9592;
   --pc-key: rgb(255 255 255 / 0.12);
   --pc-dim: rgb(255 255 255 / 0.62);
   --pc-shadow: 0 2px 8px #00000033, 0 4px 16px #0000001a, 0 16px 40px -12px rgb(0 0 0 / 0.45);
@@ -258,7 +262,8 @@
   --pc-placeholder: rgb(0 0 0 / 0.4);
   --pc-track-border: rgb(0 0 0 / 0.1);
   --pc-footer: rgb(0 0 0 / 0.04);
-  --pc-danger: #e5484d;
+  --pc-danger: #ce2c31;
+  --destructive: #ce2c31;
   --pc-key: #ffffff;
   --pc-dim: #5f6167;
   --pc-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 2px 8px #0000001a, 0 4px 16px #0000000f;

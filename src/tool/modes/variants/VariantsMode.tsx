@@ -163,6 +163,7 @@ function variantPrompt(set: VariantSet, option: "original" | VariantSet["options
   return lines.join("\n")
 }
 
+// hover feedback on cards is instant: no transitions on anything that reacts to the pointer
 function OptionCard({
   set,
   option,
@@ -200,20 +201,24 @@ function OptionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 4) * 0.03 }}
       onMouseEnter={() => setPreviewOption({ setId: set.id, optionId: id })}
-      className="group/card relative flex w-full flex-col overflow-hidden rounded-[14px] border border-border bg-background text-left"
+      className={cn(
+        "group/card relative flex w-full flex-col overflow-hidden rounded-[14px] border border-border bg-background text-left",
+        // the one on screen: a plain outline in the variants purple
+        applied && "border-[var(--pc-variant)] shadow-[0_0_0_1px_var(--pc-variant)]",
+      )}
     >
       <div className="relative border-b border-border/70 bg-[#f6f6f4] dark:bg-[#ececea]">
         <DeferredPreview set={set} option={option} index={index} />
-        {/* hover: the preview dims and offers the main action right on it */}
+        {/* hover: the main action shows right on the preview, instantly */}
         {!applied && (
-          <div className="absolute inset-0 grid place-items-center bg-black/0 opacity-0 transition-[opacity,background-color] duration-150 group-hover/card:bg-black/25 group-hover/card:opacity-100 group-focus-within/card:bg-black/25 group-focus-within/card:opacity-100">
+          <div className="pointer-events-none absolute inset-0 grid place-items-center opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 chooseVariant(set.id, id)
                 setPreviewOption(null)
               }}
-              className="flex h-8 translate-y-1 items-center gap-1.5 rounded-full bg-[var(--pc-variant)] px-3.5 text-[12.5px] font-medium text-white shadow-[0_2px_8px_rgb(0_0_0/0.2)] transition-[transform,filter] duration-200 ease-out hover:brightness-110 active:scale-[0.97] group-hover/card:translate-y-0 [&_svg]:size-3.5"
+              className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full bg-[#1a1a1a] px-3.5 text-[12.5px] font-medium text-white hover:bg-black active:scale-[0.97] [&_svg]:size-3.5"
             >
               <Plus /> Add to screen
             </button>
@@ -232,7 +237,7 @@ function OptionCard({
                     e.stopPropagation()
                     onSources()
                   }}
-                  className="rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground opacity-0 transition-[opacity,background-color,color] duration-150 hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground group-hover/card:opacity-100 group-focus-within/card:opacity-100"
+                  className="rounded-full bg-muted px-2 py-px text-[11px] font-medium leading-[1.5] text-muted-foreground opacity-0 hover:bg-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] hover:text-foreground group-hover/card:opacity-100 group-focus-within/card:opacity-100"
                 >
                   {sourceApps(index).length} sources
                 </button>
@@ -255,7 +260,7 @@ function OptionCard({
                 e.stopPropagation()
                 deleteVariantOption(set.id, option.id)
               }}
-              className="-my-0.5 grid size-6 place-items-center rounded-full text-[#e5484d]/60 transition-colors hover:bg-[#e5484d]/10 hover:text-[#e5484d] [&_svg]:size-3.5"
+              className="-my-0.5 grid size-6 place-items-center rounded-full text-[var(--pc-danger)] hover:bg-[color-mix(in_oklab,var(--pc-danger),transparent_88%)] [&_svg]:size-3.5"
             >
               <Trash2 />
             </button>
@@ -276,7 +281,7 @@ function OptionCard({
       <span
         className={cn(
           "absolute -top-px left-0 min-w-[39px] rounded-br-[4px] rounded-tl-[4px] px-1.5 py-0.5 text-center text-[11px] font-medium leading-[1.2]",
-          applied ? "bg-[var(--pc-variant)] text-white" : "bg-[#e8deff] text-[var(--pc-variant)]",
+          applied ? "bg-[var(--pc-variant)] text-white" : "bg-[color-mix(in_oklab,var(--pc-variant),white_86%)] text-[var(--pc-variant)]",
         )}
       >
         {code}
@@ -390,7 +395,7 @@ function CardPill({ onClick, children }: { onClick: () => void; children: React.
         e.stopPropagation()
         onClick()
       }}
-      className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium leading-[1.5] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium leading-[1.5] text-muted-foreground hover:bg-muted hover:text-foreground"
     >
       {children}
     </button>

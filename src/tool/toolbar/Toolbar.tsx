@@ -141,7 +141,7 @@ function ToolButton({
                 ? "text-white"
                 : "bg-white text-[#1a1a1a] dark:bg-[#1a1a1a] dark:text-white"
               : danger
-                ? "text-white/85 hover:bg-[#ff6166]/15 hover:text-[#ff6166] dark:text-[#1a1a1a]/75 dark:hover:bg-[#e5484d]/10 dark:hover:text-[#e5484d]"
+                ? "text-white/85 hover:bg-[#ff9592]/15 hover:text-[#ff9592] dark:text-[#1a1a1a]/75 dark:hover:bg-[#ce2c31]/10 dark:hover:text-[#ce2c31]"
                 : "text-white/85 hover:bg-white/10 hover:text-white dark:text-[#1a1a1a]/75 dark:hover:bg-black/[0.05] dark:hover:text-[#1a1a1a]",
           )}
           style={active && accent ? { backgroundColor: accent } : undefined}
@@ -262,7 +262,7 @@ function ConfirmDeleteBar({ count, shake, onConfirm, onCancel }: { count: number
         type="button"
         data-confirm
         onClick={onConfirm}
-        className="h-7 rounded-full bg-[#e5484d] px-2.5 font-medium text-white outline-none transition-[background-color,transform] duration-150 hover:bg-[#dc3e42] focus-visible:ring-2 focus-visible:ring-[#e5484d]/40 active:scale-[0.96]"
+        className="h-7 rounded-full bg-[var(--pc-danger-solid)] px-2.5 font-medium text-white outline-none transition-[background-color,transform] duration-150 hover:bg-[#b8262b] focus-visible:ring-2 focus-visible:ring-[#ff9592]/50 active:scale-[0.96] dark:focus-visible:ring-[#ce2c31]/40"
       >
         Yes, I am sure
       </button>
@@ -625,7 +625,7 @@ export function Toolbar() {
                 <DropdownMenuSeparator className="bg-white/10 dark:bg-black/[0.08]" />
                 <DropdownMenuItem
                   variant="destructive"
-                  className="focus:bg-red-500/15 focus:text-red-400 dark:focus:bg-red-500/10 dark:focus:text-red-600"
+                  className="text-[#ff9592]! focus:bg-[#ff9592]/15! focus:text-[#ff9592]! [&_svg]:text-[#ff9592]! dark:text-[#ce2c31]! dark:focus:bg-[#ce2c31]/10! dark:focus:text-[#ce2c31]! dark:[&_svg]:text-[#ce2c31]!"
                   onClick={() => {
                     useTool.getState().resetDemo()
                   }}

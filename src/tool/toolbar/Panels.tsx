@@ -66,8 +66,8 @@ export function RaisePRCard() {
               {files.map((f) => (
                 <div key={f.path} className="flex items-center gap-2 border-b border-border/70 px-3 py-2 text-[11.5px] last:border-b-0">
                   <span className="flex-1 truncate font-mono">{f.path}</span>
-                  <span className="font-mono text-emerald-600">+{f.add}</span>
-                  <span className="font-mono text-red-500">−{f.del}</span>
+                  <span className="font-mono text-emerald-700 dark:text-emerald-400">+{f.add}</span>
+                  <span className="font-mono text-[var(--pc-danger)]">−{f.del}</span>
                 </div>
               ))}
             </div>
